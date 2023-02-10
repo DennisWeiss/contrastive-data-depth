@@ -96,11 +96,11 @@ for epoch in range(1, EPOCHS+1):
             )
         )
 
-        checkpoint = {
-            'epoch': epoch,
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer_model.state_dict(),
-            'loss': summed_total_loss.item() / batches
-        }
+    checkpoint = {
+        'epoch': epoch,
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer_model.state_dict(),
+        'loss': summed_total_loss.item() / batches
+    }
 
-        torch.save(checkpoint, 'checkpoint.pth')
+    torch.save(checkpoint, 'checkpoint.pth')
