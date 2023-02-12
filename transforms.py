@@ -1,4 +1,6 @@
 import random
+
+import torch
 import torchvision
 from PIL import Image, ImageOps, ImageFilter
 
@@ -29,7 +31,7 @@ class Solarization(object):
 class Transform:
     def __init__(self):
         self.transform = torchvision.transforms.Compose([
-            torchvision.transforms.RandomResizedCrop(224, interpolation=Image.BICUBIC),
+            # torchvision.transforms.RandomResizedCrop(224, interpolation=Image.BICUBIC),
             torchvision.transforms.RandomHorizontalFlip(p=0.5),
             torchvision.transforms.RandomApply(
                 [torchvision.transforms.ColorJitter(brightness=0.4, contrast=0.4,
@@ -44,7 +46,7 @@ class Transform:
                                  std=[0.229, 0.224, 0.225])
         ])
         self.transform_prime = torchvision.transforms.Compose([
-            torchvision.transforms.RandomResizedCrop(224, interpolation=Image.BICUBIC),
+            # torchvision.transforms.RandomResizedCrop(224, interpolation=Image.BICUBIC),
             torchvision.transforms.RandomHorizontalFlip(p=0.5),
             torchvision.transforms.RandomApply(
                 [torchvision.transforms.ColorJitter(brightness=0.4, contrast=0.4,
@@ -63,4 +65,5 @@ class Transform:
         y1 = self.transform(x)
         y2 = self.transform_prime(x)
         return y1, y2
+        return torch.stack([y1, y2])
 
