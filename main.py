@@ -3,21 +3,27 @@ import torch
 import torch.nn as nn
 import torch.utils.data
 import torchvision.datasets
+from pyod.models.knn import KNN
 from torch.optim.lr_scheduler import LambdaLR
 from tqdm import tqdm
 import numpy as np
+from pyod.models.kde import KDE
+from sklearn.metrics import roc_auc_score
 
-from common import soft_tukey_depth, get_kl_divergence, evaluate_by_linear_probing, soft_tukey_depth_thru_origin
-from dataset import NormalCIFAR10Dataset
+from common import soft_tukey_depth, get_kl_divergence, evaluate_by_linear_probing, soft_tukey_depth_thru_origin, norm_of_kde
+from dataset import NormalCIFAR10Dataset, AnomalousCIFAR10Dataset
 from model import DataDepthTwinsModel
 from transforms import Transform
 
 
+LOAD_FROM_CHECKPOINT = False
+
+NORMAL_CLASS = 0
 BATCH_SIZE = 256
 TUKEY_DEPTH_STEPS = 40
 TEMP = 1
 EPOCHS = 100
-LEARNING_RATE = 1e-2
+LEARNING_RATE = 1e-3
 
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
@@ -47,8 +53,59 @@ def get_lr(step, total_steps, lr_max, lr_min):
     return lr_min + (lr_max - lr_min) * 0.5 * (1 + np.cos(step / total_steps * np.pi))
 
 
-# train_data = NormalCIFAR10Dataset(normal_class=0, train=True, transform=Transform())
+def evaluate_auroc_anomaly_detection(model, projection_size, train_loader, test_normal_loader, test_anomalous_loader):
+    x_train = np.zeros((0, projection_size))
+    for x in train_loader:
+        x = x.to(device)
+        x = model(x)
+        x = x.detach().cpu().numpy()
+        x_train = np.concatenate((x_train, x), axis=0)
+
+    x_test = np.zeros((0, projection_size))
+    y_test = np.zeros(0)
+
+    for x in test_normal_loader:
+        x = x.to(device)
+        x = model(x)
+        x = x.detach().cpu().numpy()
+        x_test = np.concatenate((x_test, x), axis=0)
+        y_test = np.concatenate((y_test, np.zeros(x.shape[0])), axis=0)
+
+    for x in test_anomalous_loader:
+        x = x.to(device)
+        x = model(x)
+        x = x.detach().cpu().numpy()
+        x_test = np.concatenate((x_test, x), axis=0)
+        y_test = np.concatenate((y_test, np.ones(x.shape[0])), axis=0)
+
+    # clf = KDE(contamination=0.1, bandwidth=1, metric='l2')
+    clf = KNN(n_neighbors=5)
+    clf.fit(x_train)
+
+    anomaly_scores = clf.decision_function(x_test)
+
+    return roc_auc_score(y_test, anomaly_scores)
+
+
+# CIFAR10 1 vs. rest Anomaly Detection
+
+# train_data = NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=Transform())
 # train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
+#
+# train_data_eval = NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=torchvision.transforms.ToTensor())
+# train_data_eval_dataloader = torch.utils.data.DataLoader(train_data_eval, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
+#
+# test_normal_data = NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=False, transform=torchvision.transforms.ToTensor())
+# test_normal_dataloader = torch.utils.data.DataLoader(test_normal_data, batch_size=BATCH_SIZE, shuffle=False, drop_last=False)
+#
+# test_anomalous_data = torch.utils.data.Subset(
+#     AnomalousCIFAR10Dataset(normal_class=NORMAL_CLASS, train=False, transform=torchvision.transforms.ToTensor()),
+#     list(range(len(test_normal_data)))
+# )
+# test_anomalous_dataloader = torch.utils.data.DataLoader(test_anomalous_data, batch_size=BATCH_SIZE, shuffle=False, drop_last=False)
+
+
+# CIFAR10 Classification
 
 train_data = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=Transform())
 train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
@@ -57,7 +114,13 @@ test_data = torchvision.datasets.CIFAR10(root='./data', train=False, download=Tr
 test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False)
 
 model = DataDepthTwinsModel().to(device)
-optimizer_model = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=0.9, weight_decay=1e-6, nesterov=True)
+# optimizer_model = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=0.9, nesterov=True)
+optimizer_model = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-6)
+
+if LOAD_FROM_CHECKPOINT:
+    checkpoint = torch.load('checkpoint.pth')
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer_model.load_state_dict(checkpoint['optimizer_state_dict'])
 
 # scheduler = LambdaLR(
 #         optimizer_model,
@@ -67,7 +130,7 @@ optimizer_model = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum
 #             LEARNING_RATE,  # lr_lambda computes multiplicative factor
 #             1e-3))
 
-for epoch in range(1, EPOCHS+1):
+for epoch in range(checkpoint['epoch'] + 1 if LOAD_FROM_CHECKPOINT else 1, EPOCHS + 1):
     iterator = tqdm(train_dataloader, desc=get_description(epoch, 0, 0, 0, 0), unit='batch')
 
     summed_sim_loss = torch.tensor(0, device=device, dtype=torch.float)
@@ -77,10 +140,14 @@ for epoch in range(1, EPOCHS+1):
 
     batches = 0
 
+    # print(f'AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader, test_normal_dataloader, test_anomalous_dataloader)}')
+    print(f'Linar probe acc.: {evaluate_by_linear_probing(test_dataloader, model.backbone, 512, device)}')
+
     for (x1, x2), _ in iterator:
         x1, x2 = x1.to(device), x2.to(device)
         y1, y2 = model(x1), model(x2)
         y1_detached, y2_detached = y1.detach(), y2.detach()
+
 
         # x = x.to(device)
         # sizes = x.size()
@@ -91,25 +158,26 @@ for epoch in range(1, EPOCHS+1):
         optimizer_model.zero_grad()
 
         sim_loss = torch.square(y1 - y2).sum(dim=1).mean()
+        # sim_loss = 10 * (1 - ((y1 * y2).sum(dim=1) / torch.sqrt((y1 ** 2).sum(dim=1) * (y2 ** 2).sum(dim=1)).clamp(min=1e-7)).mean())
 
         z = nn.Parameter(torch.rand(y1.shape[0], y1.shape[1], device=device).multiply(2).subtract(1))
         optimizer_z = torch.optim.SGD([z], lr=1e+2)
 
         for j in range(TUKEY_DEPTH_STEPS):
             optimizer_z.zero_grad()
-            tukey_depths = soft_tukey_depth_thru_origin(y1_detached, y1_detached, z, TEMP)
+            tukey_depths = soft_tukey_depth(y1_detached, y1_detached, z, TEMP)
             tukey_depths.sum().backward()
             optimizer_z.step()
 
-        tukey_depths = soft_tukey_depth_thru_origin(y1, y1, z.detach(), TEMP)
+        tukey_depths = soft_tukey_depth(y1, y1, z.detach(), TEMP)
 
-        if epoch % 5 == 0:
-            plt.hist(tukey_depths.cpu().detach().numpy(), bins=30)
-            plt.show()
+        # if epoch % 5 == 0:
+        #     plt.hist(tukey_depths.cpu().detach().numpy(), bins=30)
+        #     plt.show()
 
         # print(tukey_depths.mean().item())
-        td_loss = get_kl_divergence(tukey_depths, lambda x: 2, 0.05, 1e-5)
-        # var_loss = 10 * -tukey_depths.var()
+        # td_loss = get_kl_divergence(tukey_depths, lambda x: 2, 0.05, 1e-5)
+        td_loss = 3 * norm_of_kde(tukey_depths.reshape(-1, 1), 0.1)
 
         # dist_loss = torch.square(y2 - y2.mean(dim=0)).sum(dim=1).mean()
 
@@ -135,8 +203,6 @@ for epoch in range(1, EPOCHS+1):
                 summed_avg_tukey_depth.item() / batches,
             )
         )
-
-    print(f'Linar probe acc.: {evaluate_by_linear_probing(test_dataloader, model, 128, device)}')
 
     checkpoint = {
         'epoch': epoch,

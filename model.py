@@ -6,7 +6,7 @@ class DataDepthTwinsModel(nn.Module):
     def __init__(self):
         super(DataDepthTwinsModel, self).__init__()
 
-        self.projection_size = 128
+        self.projection_size = 256
 
         self.backbone = torchvision.models.resnet18(pretrained=False)
 
@@ -34,6 +34,8 @@ class DataDepthTwinsModel(nn.Module):
         self.projector = nn.Sequential(
             nn.Linear(self.feature_size, 2048),
             nn.ReLU(),
+            # nn.Linear(2048, 2048),
+            # nn.ReLU(),
             nn.Linear(2048, self.projection_size),
         )
 

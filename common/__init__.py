@@ -4,6 +4,8 @@ from sklearn.linear_model import LogisticRegression
 
 
 def soft_tukey_depth(X_, X, Z, temp):
+    # X_ = X_ / X_.norm(dim=1).reshape(-1, 1)
+    # X = X / X.norm(dim=1).reshape(-1, 1)
     X_new = X.repeat(X_.size(dim=0), 1, 1)
     X_new_tr = X_.repeat(X.size(dim=0), 1, 1).transpose(0, 1)
     X_diff = X_new - X_new_tr
@@ -13,7 +15,9 @@ def soft_tukey_depth(X_, X, Z, temp):
 
 
 def soft_tukey_depth_thru_origin(X_, X, Z, temp):
-    return soft_tukey_depth(X_, X, Z - ((X_ * Z).sum(dim=1) / X_.norm(dim=1)).reshape(-1, 1) * (X_ / X_.norm(dim=1).reshape(-1, 1)), temp)
+    X_ = X_ / X_.norm(dim=1).reshape(-1, 1)
+    X = X / X.norm(dim=1).reshape(-1, 1)
+    return soft_tukey_depth(X_, X, Z - ((X_ * Z).sum(dim=1)).reshape(-1, 1) * X_, temp)
 
 
 def get_kl_divergence(soft_tukey_depths, f, kernel_bandwidth, epsilon=0.0):
@@ -43,3 +47,10 @@ def evaluate_by_linear_probing(loader, model, projection_size, device):
 
     clf.fit(X, y)
     return clf.score(X, y)
+
+
+def norm_of_kde(X, kernel_bandwidth):
+    X_new = X.repeat(X.size(dim=0), 1, 1)
+    X_new_tr = X.repeat(X.size(dim=0), 1, 1).transpose(0, 1)
+    X_diff = X_new - X_new_tr
+    return torch.exp(-(X_diff ** 2).sum(dim=2) / (2 * kernel_bandwidth * kernel_bandwidth)).mean()
