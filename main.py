@@ -168,8 +168,8 @@ test_anomalous_dataloader_2 = torch.utils.data.DataLoader(test_anomalous_data_2,
 
 model = DataDepthTwinsModel().to(device)
 # optimizer_model = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=0.9, nesterov=True)
-# optimizer_model = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-6)
-optimizer_model = torch.optim.RMSprop(model.parameters(), lr=LEARNING_RATE)
+optimizer_model = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-6)
+# optimizer_model = torch.optim.RMSprop(model.parameters(), lr=LEARNING_RATE)
 
 if LOAD_FROM_CHECKPOINT:
     checkpoint = torch.load('checkpoint.pth')
