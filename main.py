@@ -11,17 +11,17 @@ from pyod.models.kde import KDE
 from sklearn.metrics import roc_auc_score
 
 from common import soft_tukey_depth, get_kl_divergence, evaluate_by_linear_probing, soft_tukey_depth_thru_origin, norm_of_kde
-from dataset import NormalCIFAR10Dataset, AnomalousCIFAR10Dataset
+from dataset import NormalCIFAR10Dataset, AnomalousCIFAR10Dataset, NormalCIFAR10DatasetRotationAugmented
 from model import DataDepthTwinsModel
 from transforms import Transform
 
 
-LOAD_FROM_CHECKPOINT = True
+LOAD_FROM_CHECKPOINT = False
 
-NORMAL_CLASS = 5
+NORMAL_CLASS = 4
 BATCH_SIZE = 256
 TUKEY_DEPTH_STEPS = 40
-TEMP = 1
+TEMP = 0.1
 EPOCHS = 200
 LEARNING_RATE = 3e-4
 
@@ -194,7 +194,7 @@ for epoch in range(checkpoint['epoch'] + 1 if LOAD_FROM_CHECKPOINT else 1, EPOCH
 
     batches = 0
 
-    if epoch % 1 == 0:
+    if epoch % 5 == 0 or epoch < 10:
         # print(f'AUROC: {evaluate_tukey_depth_auroc(model.backbone, train_data_eval_dataloader, test_normal_dataloader, test_anomalous_dataloader)}')
         print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2)}')
     # print(f'Linar probe acc.: {evaluate_by_linear_probing(test_dataloader, model.backbone, 512, device)}')
@@ -214,7 +214,7 @@ for epoch in range(checkpoint['epoch'] + 1 if LOAD_FROM_CHECKPOINT else 1, EPOCH
         optimizer_model.zero_grad()
 
         sim_loss = torch.square(y1 - y2).sum(dim=1).mean()
-        # sim_loss = 10 * (1 - ((y1 * y2).sum(dim=1) / torch.sqrt((y1 ** 2).sum(dim=1) * (y2 ** 2).sum(dim=1)).clamp(min=1e-7)).mean())
+        # sim_loss = 30 * (1 - ((y1 * y2).sum(dim=1) / torch.sqrt((y1 ** 2).sum(dim=1) * (y2 ** 2).sum(dim=1)).clamp(min=1e-7)).mean())
 
         z = nn.Parameter(torch.rand(y1.shape[0], y1.shape[1], device=device).multiply(2).subtract(1))
         optimizer_z = torch.optim.SGD([z], lr=1e+2)
@@ -233,7 +233,8 @@ for epoch in range(checkpoint['epoch'] + 1 if LOAD_FROM_CHECKPOINT else 1, EPOCH
 
         # print(tukey_depths.mean().item())
         # td_loss = get_kl_divergence(tukey_depths, lambda x: 2, 0.05, 1e-5)
-        td_loss = 3 * norm_of_kde(tukey_depths.reshape(-1, 1), 0.1)
+        td_loss = norm_of_kde(tukey_depths.reshape(-1, 1), 0.1)
+        # td_loss = norm_of_kde(y1, 1)
 
         # dist_loss = torch.square(y2 - y2.mean(dim=0)).sum(dim=1).mean()
 
@@ -243,10 +244,11 @@ for epoch in range(checkpoint['epoch'] + 1 if LOAD_FROM_CHECKPOINT else 1, EPOCH
         optimizer_model.step()
         # scheduler.step()
 
-        summed_sim_loss += sim_loss
-        summed_td_loss += td_loss
-        summed_total_loss += total_loss
-        summed_avg_tukey_depth += tukey_depths.mean()
+        with torch.no_grad():
+            summed_sim_loss += sim_loss
+            summed_td_loss += td_loss
+            summed_total_loss += total_loss
+            summed_avg_tukey_depth += tukey_depths.mean()
 
         batches += 1
 
