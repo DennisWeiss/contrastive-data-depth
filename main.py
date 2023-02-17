@@ -194,7 +194,7 @@ for epoch in range(checkpoint['epoch'] + 1 if LOAD_FROM_CHECKPOINT else 1, EPOCH
 
     batches = 0
 
-    if epoch % 5 == 0 or epoch < 10:
+    # if epoch % 5 == 0 or epoch < 10:
         # print(f'AUROC: {evaluate_tukey_depth_auroc(model.backbone, train_data_eval_dataloader, test_normal_dataloader, test_anomalous_dataloader)}')
         # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2)}')
     # print(f'Linar probe acc.: {evaluate_by_linear_probing(test_dataloader, model.backbone, 512, device)}')
