@@ -19,7 +19,7 @@ from transforms import Transform
 LOAD_FROM_CHECKPOINT = False
 
 NORMAL_CLASS = 4
-BATCH_SIZE = 256
+BATCH_SIZE = 625
 TUKEY_DEPTH_STEPS = 40
 TEMP = 0.1
 EPOCHS = 200
@@ -86,7 +86,7 @@ def evaluate_tukey_depth_auroc(model, train_loader, test_normal_loader, test_ano
     return roc_auc_score(y_test, anomaly_scores)
 
 
-# def evaluate_auroc_anomaly_detection(model, projection_size, train_loader, test_normal_loader, test_anomalous_loader):
+# def evaluate_auroc_anomaly_detection(model, projection_size, train_loader, test_normal_loader, test_anomalous_loader, n_neighbors=5):
 #     x_train = np.zeros((0, projection_size))
 #     for x in train_loader:
 #         x = x.to(device)
@@ -112,7 +112,7 @@ def evaluate_tukey_depth_auroc(model, train_loader, test_normal_loader, test_ano
 #         y_test = np.concatenate((y_test, np.ones(x.shape[0])), axis=0)
 #
 #     # clf = KDE(contamination=0.1, bandwidth=1, metric='l2')
-#     clf = KNN(n_neighbors=5)
+#     clf = KNN(n_neighbors=n_neighbors)
 #     clf.fit(x_train)
 #
 #     anomaly_scores = clf.decision_function(x_test)
@@ -195,8 +195,10 @@ for epoch in range(checkpoint['epoch'] + 1 if LOAD_FROM_CHECKPOINT else 1, EPOCH
     batches = 0
 
     # if epoch % 5 == 0 or epoch < 10:
+        # print(f'AUROC: {evaluate_tukey_depth_auroc(model, train_data_eval_dataloader, test_normal_dataloader, test_anomalous_dataloader)}')
         # print(f'AUROC: {evaluate_tukey_depth_auroc(model.backbone, train_data_eval_dataloader, test_normal_dataloader, test_anomalous_dataloader)}')
-        # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2)}')
+        # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2)}')
+        # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=1)}')
     # print(f'Linar probe acc.: {evaluate_by_linear_probing(test_dataloader, model.backbone, 512, device)}')
 
     for (x1, x2) in iterator:
@@ -238,7 +240,7 @@ for epoch in range(checkpoint['epoch'] + 1 if LOAD_FROM_CHECKPOINT else 1, EPOCH
 
         # dist_loss = torch.square(y2 - y2.mean(dim=0)).sum(dim=1).mean()
 
-        total_loss = sim_loss + td_loss
+        total_loss = 0.3 * sim_loss + td_loss
         # total_loss = nt_xent(y)
         total_loss.backward()
         optimizer_model.step()
@@ -262,11 +264,12 @@ for epoch in range(checkpoint['epoch'] + 1 if LOAD_FROM_CHECKPOINT else 1, EPOCH
             )
         )
 
-    checkpoint = {
-        'epoch': epoch,
-        'model_state_dict': model.state_dict(),
-        'optimizer_state_dict': optimizer_model.state_dict(),
-        'loss': summed_total_loss.item() / batches
-    }
+        if epoch % 5 == 0 or epoch < 10:
+            checkpoint = {
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer_model.state_dict(),
+                'loss': summed_total_loss.item() / batches
+            }
 
-    torch.save(checkpoint, 'checkpoint.pth')
+            torch.save(checkpoint, f'checkpoint_epoch{epoch}.pth')
