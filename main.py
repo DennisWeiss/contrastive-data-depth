@@ -19,11 +19,11 @@ from transforms import Transform
 LOAD_FROM_CHECKPOINT = False
 
 NORMAL_CLASS = 4
-BATCH_SIZE = 625
+BATCH_SIZE = 800
 TUKEY_DEPTH_STEPS = 40
-TEMP = 0.1
+TEMP = 2
 EPOCHS = 200
-LEARNING_RATE = 3e-4
+LEARNING_RATE = 1e-4
 
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
@@ -172,7 +172,7 @@ optimizer_model = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_
 # optimizer_model = torch.optim.RMSprop(model.parameters(), lr=LEARNING_RATE)
 
 if LOAD_FROM_CHECKPOINT:
-    checkpoint = torch.load('checkpoint.pth')
+    checkpoint = torch.load('checkpoint_epoch150.pth')
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer_model.load_state_dict(checkpoint['optimizer_state_dict'])
 
@@ -194,7 +194,7 @@ for epoch in range(checkpoint['epoch'] + 1 if LOAD_FROM_CHECKPOINT else 1, EPOCH
 
     batches = 0
 
-    # if epoch % 5 == 0 or epoch < 10:
+    # if epoch % 1 == 0 or epoch < 10:
         # print(f'AUROC: {evaluate_tukey_depth_auroc(model, train_data_eval_dataloader, test_normal_dataloader, test_anomalous_dataloader)}')
         # print(f'AUROC: {evaluate_tukey_depth_auroc(model.backbone, train_data_eval_dataloader, test_normal_dataloader, test_anomalous_dataloader)}')
         # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2)}')
@@ -205,7 +205,6 @@ for epoch in range(checkpoint['epoch'] + 1 if LOAD_FROM_CHECKPOINT else 1, EPOCH
         x1, x2 = x1.to(device), x2.to(device)
         y1, y2 = model(x1), model(x2)
         y1_detached, y2_detached = y1.detach(), y2.detach()
-
 
         # x = x.to(device)
         # sizes = x.size()
@@ -229,7 +228,7 @@ for epoch in range(checkpoint['epoch'] + 1 if LOAD_FROM_CHECKPOINT else 1, EPOCH
 
         tukey_depths = soft_tukey_depth(y1, y1, z.detach(), TEMP)
 
-        # if epoch % 5 == 0:
+        # if epoch % 1 == 0:
         #     plt.hist(tukey_depths.cpu().detach().numpy(), bins=30)
         #     plt.show()
 
