@@ -86,38 +86,38 @@ def evaluate_tukey_depth_auroc(model, train_loader, test_normal_loader, test_ano
     return roc_auc_score(y_test, anomaly_scores)
 
 
-def evaluate_auroc_anomaly_detection(model, projection_size, train_loader, test_normal_loader, test_anomalous_loader, n_neighbors=5):
-    x_train = np.zeros((0, projection_size))
-    for x in train_loader:
-        x = x.to(device)
-        x = model(x)
-        x = x.detach().cpu().numpy()
-        x_train = np.concatenate((x_train, x), axis=0)
-
-    x_test = np.zeros((0, projection_size))
-    y_test = np.zeros(0)
-
-    for x in test_normal_loader:
-        x = x.to(device)
-        x = model(x)
-        x = x.detach().cpu().numpy()
-        x_test = np.concatenate((x_test, x), axis=0)
-        y_test = np.concatenate((y_test, np.zeros(x.shape[0])), axis=0)
-
-    for x in test_anomalous_loader:
-        x = x.to(device)
-        x = model(x)
-        x = x.detach().cpu().numpy()
-        x_test = np.concatenate((x_test, x), axis=0)
-        y_test = np.concatenate((y_test, np.ones(x.shape[0])), axis=0)
-
-    # clf = KDE(contamination=0.1, bandwidth=1, metric='l2')
-    clf = KNN(n_neighbors=n_neighbors)
-    clf.fit(x_train)
-
-    anomaly_scores = clf.decision_function(x_test)
-
-    return roc_auc_score(y_test, anomaly_scores)
+# def evaluate_auroc_anomaly_detection(model, projection_size, train_loader, test_normal_loader, test_anomalous_loader, n_neighbors=5):
+#     x_train = np.zeros((0, projection_size))
+#     for x in train_loader:
+#         x = x.to(device)
+#         x = model(x)
+#         x = x.detach().cpu().numpy()
+#         x_train = np.concatenate((x_train, x), axis=0)
+#
+#     x_test = np.zeros((0, projection_size))
+#     y_test = np.zeros(0)
+#
+#     for x in test_normal_loader:
+#         x = x.to(device)
+#         x = model(x)
+#         x = x.detach().cpu().numpy()
+#         x_test = np.concatenate((x_test, x), axis=0)
+#         y_test = np.concatenate((y_test, np.zeros(x.shape[0])), axis=0)
+#
+#     for x in test_anomalous_loader:
+#         x = x.to(device)
+#         x = model(x)
+#         x = x.detach().cpu().numpy()
+#         x_test = np.concatenate((x_test, x), axis=0)
+#         y_test = np.concatenate((y_test, np.ones(x.shape[0])), axis=0)
+#
+#     # clf = KDE(contamination=0.1, bandwidth=1, metric='l2')
+#     clf = KNN(n_neighbors=n_neighbors)
+#     clf.fit(x_train)
+#
+#     anomaly_scores = clf.decision_function(x_test)
+#
+#     return roc_auc_score(y_test, anomaly_scores)
 
 
 # CIFAR10 1 vs. rest Anomaly Detection
