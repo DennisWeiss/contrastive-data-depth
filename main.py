@@ -16,13 +16,13 @@ from model import DataDepthTwinsModel
 from transforms import Transform
 
 
-LOAD_FROM_CHECKPOINT = False
+LOAD_FROM_CHECKPOINT = True
 
 # NORMAL_CLASS = 4
 BATCH_SIZE = 800
 TUKEY_DEPTH_STEPS = 40
 TEMP = 2
-EPOCHS = 100
+EPOCHS = 200
 LEARNING_RATE = 1e-4
 
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
@@ -86,44 +86,44 @@ def evaluate_tukey_depth_auroc(model, train_loader, test_normal_loader, test_ano
     return roc_auc_score(y_test, anomaly_scores)
 
 
-# def evaluate_auroc_anomaly_detection(model, projection_size, train_loader, test_normal_loader, test_anomalous_loader, n_neighbors=5):
-#     x_train = np.zeros((0, projection_size))
-#     for x in train_loader:
-#         x = x.to(device)
-#         x = model(x)
-#         x = x.detach().cpu().numpy()
-#         x_train = np.concatenate((x_train, x), axis=0)
-#
-#     x_test = np.zeros((0, projection_size))
-#     y_test = np.zeros(0)
-#
-#     for x in test_normal_loader:
-#         x = x.to(device)
-#         x = model(x)
-#         x = x.detach().cpu().numpy()
-#         x_test = np.concatenate((x_test, x), axis=0)
-#         y_test = np.concatenate((y_test, np.zeros(x.shape[0])), axis=0)
-#
-#     for x in test_anomalous_loader:
-#         x = x.to(device)
-#         x = model(x)
-#         x = x.detach().cpu().numpy()
-#         x_test = np.concatenate((x_test, x), axis=0)
-#         y_test = np.concatenate((y_test, np.ones(x.shape[0])), axis=0)
-#
-#     # clf = KDE(contamination=0.1, bandwidth=1, metric='l2')
-#     clf = KNN(n_neighbors=n_neighbors)
-#     clf.fit(x_train)
-#
-#     anomaly_scores = clf.decision_function(x_test)
-#
-#     return roc_auc_score(y_test, anomaly_scores)
+def evaluate_auroc_anomaly_detection(model, projection_size, train_loader, test_normal_loader, test_anomalous_loader, n_neighbors=5):
+    x_train = np.zeros((0, projection_size))
+    for x in train_loader:
+        x = x.to(device)
+        x = model(x)
+        x = x.detach().cpu().numpy()
+        x_train = np.concatenate((x_train, x), axis=0)
+
+    x_test = np.zeros((0, projection_size))
+    y_test = np.zeros(0)
+
+    for x in test_normal_loader:
+        x = x.to(device)
+        x = model(x)
+        x = x.detach().cpu().numpy()
+        x_test = np.concatenate((x_test, x), axis=0)
+        y_test = np.concatenate((y_test, np.zeros(x.shape[0])), axis=0)
+
+    for x in test_anomalous_loader:
+        x = x.to(device)
+        x = model(x)
+        x = x.detach().cpu().numpy()
+        x_test = np.concatenate((x_test, x), axis=0)
+        y_test = np.concatenate((y_test, np.ones(x.shape[0])), axis=0)
+
+    # clf = KDE(contamination=0.1, bandwidth=1, metric='l2')
+    clf = KNN(n_neighbors=n_neighbors)
+    clf.fit(x_train)
+
+    anomaly_scores = clf.decision_function(x_test)
+
+    return roc_auc_score(y_test, anomaly_scores)
 
 
 # CIFAR10 1 vs. rest Anomaly Detection
 
 
-for NORMAL_CLASS in range(10):
+for NORMAL_CLASS in range(0, 10):
     print(f'Processing class {NORMAL_CLASS}...')
 
     train_data = NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=Transform())
@@ -176,7 +176,7 @@ for NORMAL_CLASS in range(10):
     # optimizer_model = torch.optim.RMSprop(model.parameters(), lr=LEARNING_RATE)
 
     if LOAD_FROM_CHECKPOINT:
-        checkpoint = torch.load('checkpoint_epoch150.pth')
+        checkpoint = torch.load(f'checkpoint_class{NORMAL_CLASS}_epoch10.pth')
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer_model.load_state_dict(checkpoint['optimizer_state_dict'])
         print(f'Loss: {checkpoint["loss"]}')
@@ -270,7 +270,7 @@ for NORMAL_CLASS in range(10):
                 )
             )
 
-            if epoch % 10 == 0 or epoch < 10:
+            if epoch == EPOCHS:
                 checkpoint = {
                     'epoch': epoch,
                     'model_state_dict': model.state_dict(),
