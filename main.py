@@ -18,11 +18,11 @@ from transforms import Transform
 
 LOAD_FROM_CHECKPOINT = False
 
-NORMAL_CLASS = 4
+# NORMAL_CLASS = 4
 BATCH_SIZE = 800
 TUKEY_DEPTH_STEPS = 40
 TEMP = 2
-EPOCHS = 200
+EPOCHS = 100
 LEARNING_RATE = 1e-4
 
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
@@ -122,153 +122,160 @@ def evaluate_tukey_depth_auroc(model, train_loader, test_normal_loader, test_ano
 
 # CIFAR10 1 vs. rest Anomaly Detection
 
-train_data = NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=Transform())
-train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
 
-train_data_eval = torch.utils.data.Subset(
-    NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=torchvision.transforms.ToTensor()),
-    list(range(1000))
-)
-train_data_eval_dataloader = torch.utils.data.DataLoader(train_data_eval, batch_size=len(train_data_eval), shuffle=True, drop_last=True)
+for NORMAL_CLASS in range(10):
+    print(f'Processing class {NORMAL_CLASS}...')
 
-test_normal_data = NormalCIFAR10Dataset(
-    normal_class=NORMAL_CLASS, train=False, transform=torchvision.transforms.ToTensor()
-)
-test_normal_dataloader = torch.utils.data.DataLoader(test_normal_data, batch_size=1, shuffle=False, drop_last=False)
+    train_data = NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=Transform())
+    train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
 
-test_anomalous_data = torch.utils.data.Subset(
-    AnomalousCIFAR10Dataset(normal_class=NORMAL_CLASS, train=False, transform=torchvision.transforms.ToTensor()),
-    list(range(len(test_normal_data)))
-)
-test_anomalous_dataloader = torch.utils.data.DataLoader(test_anomalous_data, batch_size=1, shuffle=False, drop_last=False)
+    train_data_eval = torch.utils.data.Subset(
+        NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=torchvision.transforms.ToTensor()),
+        list(range(1000))
+    )
+    train_data_eval_dataloader = torch.utils.data.DataLoader(train_data_eval, batch_size=len(train_data_eval), shuffle=True, drop_last=True)
 
+    test_normal_data = NormalCIFAR10Dataset(
+        normal_class=NORMAL_CLASS, train=False, transform=torchvision.transforms.ToTensor()
+    )
+    test_normal_dataloader = torch.utils.data.DataLoader(test_normal_data, batch_size=1, shuffle=False, drop_last=False)
 
-train_data_eval_2 = NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=torchvision.transforms.ToTensor())
-train_data_eval_dataloader_2 = torch.utils.data.DataLoader(train_data_eval_2, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
-
-test_normal_data_2 = NormalCIFAR10Dataset(
-    normal_class=NORMAL_CLASS, train=False, transform=torchvision.transforms.ToTensor()
-)
-test_normal_dataloader_2 = torch.utils.data.DataLoader(test_normal_data_2, batch_size=BATCH_SIZE, shuffle=False, drop_last=False)
-
-test_anomalous_data_2 = torch.utils.data.Subset(
-    AnomalousCIFAR10Dataset(normal_class=NORMAL_CLASS, train=False, transform=torchvision.transforms.ToTensor()),
-    list(range(len(test_normal_data)))
-)
-test_anomalous_dataloader_2 = torch.utils.data.DataLoader(test_anomalous_data_2, batch_size=BATCH_SIZE, shuffle=False, drop_last=False)
+    test_anomalous_data = torch.utils.data.Subset(
+        AnomalousCIFAR10Dataset(normal_class=NORMAL_CLASS, train=False, transform=torchvision.transforms.ToTensor()),
+        list(range(len(test_normal_data)))
+    )
+    test_anomalous_dataloader = torch.utils.data.DataLoader(test_anomalous_data, batch_size=1, shuffle=False, drop_last=False)
 
 
-# CIFAR10 Classification
+    train_data_eval_2 = NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=torchvision.transforms.ToTensor())
+    train_data_eval_dataloader_2 = torch.utils.data.DataLoader(train_data_eval_2, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
 
-# train_data = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=Transform())
-# train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
-#
-# test_data = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=torchvision.transforms.ToTensor())
-# test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False)
+    test_normal_data_2 = NormalCIFAR10Dataset(
+        normal_class=NORMAL_CLASS, train=False, transform=torchvision.transforms.ToTensor()
+    )
+    test_normal_dataloader_2 = torch.utils.data.DataLoader(test_normal_data_2, batch_size=BATCH_SIZE, shuffle=False, drop_last=False)
 
-model = DataDepthTwinsModel().to(device)
-# optimizer_model = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=0.9, nesterov=True)
-optimizer_model = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-6)
-# optimizer_model = torch.optim.RMSprop(model.parameters(), lr=LEARNING_RATE)
+    test_anomalous_data_2 = torch.utils.data.Subset(
+        AnomalousCIFAR10Dataset(normal_class=NORMAL_CLASS, train=False, transform=torchvision.transforms.ToTensor()),
+        list(range(len(test_normal_data)))
+    )
+    test_anomalous_dataloader_2 = torch.utils.data.DataLoader(test_anomalous_data_2, batch_size=BATCH_SIZE, shuffle=False, drop_last=False)
 
-if LOAD_FROM_CHECKPOINT:
-    checkpoint = torch.load('checkpoint_epoch150.pth')
-    model.load_state_dict(checkpoint['model_state_dict'])
-    optimizer_model.load_state_dict(checkpoint['optimizer_state_dict'])
 
-# scheduler = LambdaLR(
-#         optimizer_model,
-#         lr_lambda=lambda step: get_lr(  # pylint: disable=g-long-lambda
-#             step,
-#             EPOCHS * len(train_dataloader),
-#             LEARNING_RATE,  # lr_lambda computes multiplicative factor
-#             1e-3))
+    # CIFAR10 Classification
 
-for epoch in range(checkpoint['epoch'] + 1 if LOAD_FROM_CHECKPOINT else 1, EPOCHS + 1):
-    iterator = tqdm(train_dataloader, desc=get_description(epoch, 0, 0, 0, 0), unit='batch')
+    # train_data = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=Transform())
+    # train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
+    #
+    # test_data = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=torchvision.transforms.ToTensor())
+    # test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False)
 
-    summed_sim_loss = torch.tensor(0, device=device, dtype=torch.float)
-    summed_td_loss = torch.tensor(0, device=device, dtype=torch.float)
-    summed_total_loss = torch.tensor(0, device=device, dtype=torch.float)
-    summed_avg_tukey_depth = torch.tensor(0, device=device, dtype=torch.float)
+    model = DataDepthTwinsModel().to(device)
+    # optimizer_model = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=0.9, nesterov=True)
+    optimizer_model = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-6)
+    # optimizer_model = torch.optim.RMSprop(model.parameters(), lr=LEARNING_RATE)
 
-    batches = 0
+    if LOAD_FROM_CHECKPOINT:
+        checkpoint = torch.load('checkpoint_epoch150.pth')
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer_model.load_state_dict(checkpoint['optimizer_state_dict'])
+        print(f'Loss: {checkpoint["loss"]}')
 
-    # if epoch % 1 == 0 or epoch < 10:
-        # print(f'AUROC: {evaluate_tukey_depth_auroc(model, train_data_eval_dataloader, test_normal_dataloader, test_anomalous_dataloader)}')
-        # print(f'AUROC: {evaluate_tukey_depth_auroc(model.backbone, train_data_eval_dataloader, test_normal_dataloader, test_anomalous_dataloader)}')
-        # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2)}')
-        # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=1)}')
-    # print(f'Linar probe acc.: {evaluate_by_linear_probing(test_dataloader, model.backbone, 512, device)}')
+    # scheduler = LambdaLR(
+    #         optimizer_model,
+    #         lr_lambda=lambda step: get_lr(  # pylint: disable=g-long-lambda
+    #             step,
+    #             EPOCHS * len(train_dataloader),
+    #             LEARNING_RATE,  # lr_lambda computes multiplicative factor
+    #             1e-3))
 
-    for (x1, x2) in iterator:
-        x1, x2 = x1.to(device), x2.to(device)
-        y1, y2 = model(x1), model(x2)
-        y1_detached, y2_detached = y1.detach(), y2.detach()
+    for epoch in range(checkpoint['epoch'] + 1 if LOAD_FROM_CHECKPOINT else 1, EPOCHS + 1):
+        iterator = tqdm(train_dataloader, desc=get_description(epoch, 0, 0, 0, 0), unit='batch')
 
-        # x = x.to(device)
-        # sizes = x.size()
-        # x = x.view(sizes[0] * 2, sizes[2], sizes[3], sizes[4])
-        # y = model(x)
-        # y_detached = y.detach()
+        summed_sim_loss = torch.tensor(0, device=device, dtype=torch.float)
+        summed_td_loss = torch.tensor(0, device=device, dtype=torch.float)
+        summed_total_loss = torch.tensor(0, device=device, dtype=torch.float)
+        summed_avg_tukey_depth = torch.tensor(0, device=device, dtype=torch.float)
 
-        optimizer_model.zero_grad()
+        batches = 0
 
-        sim_loss = torch.square(y1 - y2).sum(dim=1).mean()
-        # sim_loss = 30 * (1 - ((y1 * y2).sum(dim=1) / torch.sqrt((y1 ** 2).sum(dim=1) * (y2 ** 2).sum(dim=1)).clamp(min=1e-7)).mean())
+        # if epoch % 1 == 0 or epoch < 10:
+            # print(f'AUROC: {evaluate_tukey_depth_auroc(model, train_data_eval_dataloader, test_normal_dataloader, test_anomalous_dataloader)}')
+            # print(f'AUROC: {evaluate_tukey_depth_auroc(model.backbone, train_data_eval_dataloader, test_normal_dataloader, test_anomalous_dataloader)}')
+            # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=5)}')
+            # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=1)}')
+            # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=5)}')
+            # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=1)}')
+        # print(f'Linar probe acc.: {evaluate_by_linear_probing(test_dataloader, model.backbone, 512, device)}')
 
-        z = nn.Parameter(torch.rand(y1.shape[0], y1.shape[1], device=device).multiply(2).subtract(1))
-        optimizer_z = torch.optim.SGD([z], lr=1e+2)
+        for (x1, x2) in iterator:
+            x1, x2 = x1.to(device), x2.to(device)
+            y1, y2 = model(x1), model(x2)
+            y1_detached, y2_detached = y1.detach(), y2.detach()
 
-        for j in range(TUKEY_DEPTH_STEPS):
-            optimizer_z.zero_grad()
-            tukey_depths = soft_tukey_depth(y1_detached, y1_detached, z, TEMP)
-            tukey_depths.sum().backward()
-            optimizer_z.step()
+            # x = x.to(device)
+            # sizes = x.size()
+            # x = x.view(sizes[0] * 2, sizes[2], sizes[3], sizes[4])
+            # y = model(x)
+            # y_detached = y.detach()
 
-        tukey_depths = soft_tukey_depth(y1, y1, z.detach(), TEMP)
+            optimizer_model.zero_grad()
 
-        # if epoch % 1 == 0:
-        #     plt.hist(tukey_depths.cpu().detach().numpy(), bins=30)
-        #     plt.show()
+            sim_loss = torch.square(y1 - y2).sum(dim=1).mean()
+            # sim_loss = 30 * (1 - ((y1 * y2).sum(dim=1) / torch.sqrt((y1 ** 2).sum(dim=1) * (y2 ** 2).sum(dim=1)).clamp(min=1e-7)).mean())
 
-        # print(tukey_depths.mean().item())
-        # td_loss = get_kl_divergence(tukey_depths, lambda x: 2, 0.05, 1e-5)
-        td_loss = norm_of_kde(tukey_depths.reshape(-1, 1), 0.1)
-        # td_loss = norm_of_kde(y1, 1)
+            z = nn.Parameter(torch.rand(y1.shape[0], y1.shape[1], device=device).multiply(2).subtract(1))
+            optimizer_z = torch.optim.SGD([z], lr=1e+2)
 
-        # dist_loss = torch.square(y2 - y2.mean(dim=0)).sum(dim=1).mean()
+            for j in range(TUKEY_DEPTH_STEPS):
+                optimizer_z.zero_grad()
+                tukey_depths = soft_tukey_depth(y1_detached, y1_detached, z, TEMP)
+                tukey_depths.sum().backward()
+                optimizer_z.step()
 
-        total_loss = 0.3 * sim_loss + td_loss
-        # total_loss = nt_xent(y)
-        total_loss.backward()
-        optimizer_model.step()
-        # scheduler.step()
+            tukey_depths = soft_tukey_depth(y1, y1, z.detach(), TEMP)
 
-        with torch.no_grad():
-            summed_sim_loss += sim_loss
-            summed_td_loss += td_loss
-            summed_total_loss += total_loss
-            summed_avg_tukey_depth += tukey_depths.mean()
+            # if epoch % 1 == 0:
+            #     plt.hist(tukey_depths.cpu().detach().numpy(), bins=30)
+            #     plt.show()
 
-        batches += 1
+            # print(tukey_depths.mean().item())
+            # td_loss = get_kl_divergence(tukey_depths, lambda x: 2, 0.05, 1e-5)
+            td_loss = norm_of_kde(tukey_depths.reshape(-1, 1), 0.1)
+            # td_loss = norm_of_kde(y1, 1)
 
-        iterator.set_description(
-            get_description(
-                epoch,
-                summed_sim_loss.item() / batches,
-                summed_td_loss.item() / batches,
-                summed_total_loss.item() / batches,
-                summed_avg_tukey_depth.item() / batches,
+            # dist_loss = torch.square(y2 - y2.mean(dim=0)).sum(dim=1).mean()
+
+            total_loss = 0.3 * sim_loss + td_loss
+            # total_loss = nt_xent(y)
+            total_loss.backward()
+            optimizer_model.step()
+            # scheduler.step()
+
+            with torch.no_grad():
+                summed_sim_loss += sim_loss
+                summed_td_loss += td_loss
+                summed_total_loss += total_loss
+                summed_avg_tukey_depth += tukey_depths.mean()
+
+            batches += 1
+
+            iterator.set_description(
+                get_description(
+                    epoch,
+                    summed_sim_loss.item() / batches,
+                    summed_td_loss.item() / batches,
+                    summed_total_loss.item() / batches,
+                    summed_avg_tukey_depth.item() / batches,
+                )
             )
-        )
 
-        if epoch % 5 == 0 or epoch < 10:
-            checkpoint = {
-                'epoch': epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer_model.state_dict(),
-                'loss': summed_total_loss.item() / batches
-            }
+            if epoch % 10 == 0 or epoch < 10:
+                checkpoint = {
+                    'epoch': epoch,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer_model.state_dict(),
+                    'loss': summed_total_loss.item() / batches
+                }
 
-            torch.save(checkpoint, f'checkpoint_epoch{epoch}.pth')
+                torch.save(checkpoint, f'checkpoint_class{NORMAL_CLASS}_epoch{epoch}.pth')
