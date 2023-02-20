@@ -224,16 +224,16 @@ for NORMAL_CLASS in range(0, 10):
             sim_loss = torch.square(y1 - y2).sum(dim=1).mean()
             # sim_loss = 30 * (1 - ((y1 * y2).sum(dim=1) / torch.sqrt((y1 ** 2).sum(dim=1) * (y2 ** 2).sum(dim=1)).clamp(min=1e-7)).mean())
 
-            z = nn.Parameter(torch.rand(y1.shape[0], y1.shape[1], device=device).multiply(2).subtract(1))
-            optimizer_z = torch.optim.SGD([z], lr=1e+2)
-
-            for j in range(TUKEY_DEPTH_STEPS):
-                optimizer_z.zero_grad()
-                tukey_depths = soft_tukey_depth(y1_detached, y1_detached, z, TEMP)
-                tukey_depths.sum().backward()
-                optimizer_z.step()
-
-            tukey_depths = soft_tukey_depth(y1, y1, z.detach(), TEMP)
+            # z = nn.Parameter(torch.rand(y1.shape[0], y1.shape[1], device=device).multiply(2).subtract(1))
+            # optimizer_z = torch.optim.SGD([z], lr=1e+2)
+            #
+            # for j in range(TUKEY_DEPTH_STEPS):
+            #     optimizer_z.zero_grad()
+            #     tukey_depths = soft_tukey_depth(y1_detached, y1_detached, z, TEMP)
+            #     tukey_depths.sum().backward()
+            #     optimizer_z.step()
+            #
+            # tukey_depths = soft_tukey_depth(y1, y1, z.detach(), TEMP)
 
             # if epoch % 1 == 0:
             #     plt.hist(tukey_depths.cpu().detach().numpy(), bins=30)
@@ -256,7 +256,7 @@ for NORMAL_CLASS in range(0, 10):
                 summed_sim_loss += sim_loss
                 summed_td_loss += td_loss
                 summed_total_loss += total_loss
-                summed_avg_tukey_depth += tukey_depths.mean()
+                # summed_avg_tukey_depth += tukey_depths.mean()
 
             batches += 1
 
