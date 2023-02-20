@@ -16,13 +16,13 @@ from model import DataDepthTwinsModel
 from transforms import Transform
 
 
-LOAD_FROM_CHECKPOINT = True
+LOAD_FROM_CHECKPOINT = False
 
 # NORMAL_CLASS = 4
-BATCH_SIZE = 800
+BATCH_SIZE = 1000
 TUKEY_DEPTH_STEPS = 40
 TEMP = 2
-EPOCHS = 200
+EPOCHS = 100
 LEARNING_RATE = 1e-4
 
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
@@ -176,7 +176,7 @@ for NORMAL_CLASS in range(0, 10):
     # optimizer_model = torch.optim.RMSprop(model.parameters(), lr=LEARNING_RATE)
 
     if LOAD_FROM_CHECKPOINT:
-        checkpoint = torch.load(f'checkpoint_class{NORMAL_CLASS}_epoch10.pth')
+        checkpoint = torch.load(f'checkpoint_class{NORMAL_CLASS}_epoch200.pth')
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer_model.load_state_dict(checkpoint['optimizer_state_dict'])
         print(f'Loss: {checkpoint["loss"]}')
@@ -199,9 +199,9 @@ for NORMAL_CLASS in range(0, 10):
 
         batches = 0
 
-        # if epoch % 1 == 0 or epoch < 10:
+        # if epoch % 5 == 0 or epoch < 10:
             # print(f'AUROC: {evaluate_tukey_depth_auroc(model, train_data_eval_dataloader, test_normal_dataloader, test_anomalous_dataloader)}')
-            # print(f'AUROC: {evaluate_tukey_depth_auroc(model.backbone, train_data_eval_dataloader, test_normal_dataloader, test_anomalous_dataloader)}')
+            # # print(f'AUROC: {evaluate_tukey_depth_auroc(model.backbone, train_data_eval_dataloader, test_normal_dataloader, test_anomalous_dataloader)}')
             # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=5)}')
             # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=1)}')
             # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=5)}')
@@ -241,8 +241,8 @@ for NORMAL_CLASS in range(0, 10):
 
             # print(tukey_depths.mean().item())
             # td_loss = get_kl_divergence(tukey_depths, lambda x: 2, 0.05, 1e-5)
-            td_loss = norm_of_kde(tukey_depths.reshape(-1, 1), 0.1)
-            # td_loss = norm_of_kde(y1, 1)
+            # td_loss = norm_of_kde(tukey_depths.reshape(-1, 1), 0.1)
+            td_loss = norm_of_kde(y1, 0.5)
 
             # dist_loss = torch.square(y2 - y2.mean(dim=0)).sum(dim=1).mean()
 
