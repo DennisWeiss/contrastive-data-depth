@@ -16,14 +16,14 @@ from model import DataDepthTwinsModel
 from transforms import Transform
 
 
-LOAD_FROM_CHECKPOINT = False
+LOAD_FROM_CHECKPOINT = True
 
 # NORMAL_CLASS = 4
 BATCH_SIZE = 400
 TUKEY_DEPTH_STEPS = 40
 TEMP = 2
 EPOCHS = 100
-LEARNING_RATE = 1e-4
+LEARNING_RATE = 3e-4
 
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
@@ -126,7 +126,7 @@ def evaluate_tukey_depth_auroc(model, train_loader, test_normal_loader, test_ano
 for NORMAL_CLASS in range(0, 10):
     print(f'Processing class {NORMAL_CLASS}...')
 
-    train_data = torch.utils.data.Subset(NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=Transform()), list(range(1600)))
+    train_data = torch.utils.data.Subset(NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=Transform()), list(range(2000)))
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
     train_dataloader_full = torch.utils.data.DataLoader(train_data, batch_size=len(train_data))
 
@@ -177,7 +177,7 @@ for NORMAL_CLASS in range(0, 10):
     # optimizer_model = torch.optim.RMSprop(model.parameters(), lr=LEARNING_RATE)
 
     if LOAD_FROM_CHECKPOINT:
-        checkpoint = torch.load(f'checkpoint_class{NORMAL_CLASS}_epoch20.pth')
+        checkpoint = torch.load(f'checkpoint_class{NORMAL_CLASS}_epoch100.pth')
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer_model.load_state_dict(checkpoint['optimizer_state_dict'])
         print(f'Loss: {checkpoint["loss"]}')
@@ -187,7 +187,7 @@ for NORMAL_CLASS in range(0, 10):
     #         lr_lambda=lambda step: get_lr(  # pylint: disable=g-long-lambda
     #             step,
     #             EPOCHS * len(train_dataloader),
-    #             LEARNING_RATE,  # lr_lambda computes multiplicative factor
+    #             LEARNING_RATE, # lr_lambda computes multiplicative factor
     #             1e-3))
 
     for epoch in range(checkpoint['epoch'] + 1 if LOAD_FROM_CHECKPOINT else 1, EPOCHS + 1):
@@ -276,7 +276,7 @@ for NORMAL_CLASS in range(0, 10):
                     )
                 )
 
-                if epoch % 5 == 0 or epoch < 10:
+                if epoch == EPOCHS:
                     checkpoint = {
                         'epoch': epoch,
                         'model_state_dict': model.state_dict(),
