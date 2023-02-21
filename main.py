@@ -19,7 +19,7 @@ from transforms import Transform
 LOAD_FROM_CHECKPOINT = False
 
 # NORMAL_CLASS = 4
-BATCH_SIZE = 1000
+BATCH_SIZE = 400
 TUKEY_DEPTH_STEPS = 40
 TEMP = 2
 EPOCHS = 100
@@ -126,8 +126,9 @@ def evaluate_tukey_depth_auroc(model, train_loader, test_normal_loader, test_ano
 for NORMAL_CLASS in range(0, 10):
     print(f'Processing class {NORMAL_CLASS}...')
 
-    train_data = NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=Transform())
+    train_data = torch.utils.data.Subset(NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=Transform()), list(range(1600)))
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
+    train_dataloader_full = torch.utils.data.DataLoader(train_data, batch_size=len(train_data))
 
     train_data_eval = torch.utils.data.Subset(
         NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=torchvision.transforms.ToTensor()),
@@ -176,7 +177,7 @@ for NORMAL_CLASS in range(0, 10):
     # optimizer_model = torch.optim.RMSprop(model.parameters(), lr=LEARNING_RATE)
 
     if LOAD_FROM_CHECKPOINT:
-        checkpoint = torch.load(f'checkpoint_class{NORMAL_CLASS}_epoch200.pth')
+        checkpoint = torch.load(f'checkpoint_class{NORMAL_CLASS}_epoch100.pth')
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer_model.load_state_dict(checkpoint['optimizer_state_dict'])
         print(f'Loss: {checkpoint["loss"]}')
@@ -199,7 +200,7 @@ for NORMAL_CLASS in range(0, 10):
 
         batches = 0
 
-        # if epoch % 5 == 0 or epoch < 10:
+        # if epoch % 1 == 0 or epoch < 10:
             # print(f'AUROC: {evaluate_tukey_depth_auroc(model, train_data_eval_dataloader, test_normal_dataloader, test_anomalous_dataloader)}')
             # # print(f'AUROC: {evaluate_tukey_depth_auroc(model.backbone, train_data_eval_dataloader, test_normal_dataloader, test_anomalous_dataloader)}')
             # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=5)}')
@@ -219,63 +220,68 @@ for NORMAL_CLASS in range(0, 10):
             # y = model(x)
             # y_detached = y.detach()
 
-            optimizer_model.zero_grad()
+            for (x1_full, x2_full) in train_dataloader_full:
+                x1_full, x2_full = x1_full.to(device), x2_full.to(device)
+                y1_full, y2_full = model(x1_full), model(x2_full)
+                y1_full_detached, y2_full_detached = y1_full.detach(), y2_full.detach()
 
-            sim_loss = torch.square(y1 - y2).sum(dim=1).mean()
-            # sim_loss = 30 * (1 - ((y1 * y2).sum(dim=1) / torch.sqrt((y1 ** 2).sum(dim=1) * (y2 ** 2).sum(dim=1)).clamp(min=1e-7)).mean())
+                optimizer_model.zero_grad()
 
-            # z = nn.Parameter(torch.rand(y1.shape[0], y1.shape[1], device=device).multiply(2).subtract(1))
-            # optimizer_z = torch.optim.SGD([z], lr=1e+2)
-            #
-            # for j in range(TUKEY_DEPTH_STEPS):
-            #     optimizer_z.zero_grad()
-            #     tukey_depths = soft_tukey_depth(y1_detached, y1_detached, z, TEMP)
-            #     tukey_depths.sum().backward()
-            #     optimizer_z.step()
-            #
-            # tukey_depths = soft_tukey_depth(y1, y1, z.detach(), TEMP)
+                sim_loss = torch.square(y1 - y2).sum(dim=1).mean()
+                # sim_loss = 30 * (1 - ((y1 * y2).sum(dim=1) / torch.sqrt((y1 ** 2).sum(dim=1) * (y2 ** 2).sum(dim=1)).clamp(min=1e-7)).mean())
 
-            # if epoch % 1 == 0:
-            #     plt.hist(tukey_depths.cpu().detach().numpy(), bins=30)
-            #     plt.show()
+                z = nn.Parameter(torch.rand(y1_full.shape[0], y1_full.shape[1], device=device).multiply(2).subtract(1))
+                optimizer_z = torch.optim.SGD([z], lr=1e+2)
 
-            # print(tukey_depths.mean().item())
-            # td_loss = get_kl_divergence(tukey_depths, lambda x: 2, 0.05, 1e-5)
-            # td_loss = norm_of_kde(tukey_depths.reshape(-1, 1), 0.1)
-            td_loss = norm_of_kde(y1, 0.5)
+                for j in range(TUKEY_DEPTH_STEPS):
+                    optimizer_z.zero_grad()
+                    tukey_depths = soft_tukey_depth(y1_full_detached, y1_detached, z, TEMP)
+                    tukey_depths.sum().backward()
+                    optimizer_z.step()
 
-            # dist_loss = torch.square(y2 - y2.mean(dim=0)).sum(dim=1).mean()
+                tukey_depths = soft_tukey_depth(y1_full, y1, z.detach(), TEMP)
 
-            total_loss = 0.3 * sim_loss + td_loss
-            # total_loss = nt_xent(y)
-            total_loss.backward()
-            optimizer_model.step()
-            # scheduler.step()
+                # if epoch % 1 == 0:
+                #     plt.hist(tukey_depths.cpu().detach().numpy(), bins=30)
+                #     plt.show()
 
-            with torch.no_grad():
-                summed_sim_loss += sim_loss
-                summed_td_loss += td_loss
-                summed_total_loss += total_loss
-                # summed_avg_tukey_depth += tukey_depths.mean()
+                # print(tukey_depths.mean().item())
+                # td_loss = get_kl_divergence(tukey_depths, lambda x: 2, 0.05, 1e-5)
+                # td_loss = norm_of_kde(tukey_depths.reshape(-1, 1), 0.1)
+                td_loss = norm_of_kde(y1, 0.5)
 
-            batches += 1
+                # dist_loss = torch.square(y2 - y2.mean(dim=0)).sum(dim=1).mean()
 
-            iterator.set_description(
-                get_description(
-                    epoch,
-                    summed_sim_loss.item() / batches,
-                    summed_td_loss.item() / batches,
-                    summed_total_loss.item() / batches,
-                    summed_avg_tukey_depth.item() / batches,
+                total_loss = 0.3 * sim_loss + td_loss
+                # total_loss = nt_xent(y)
+                total_loss.backward()
+                optimizer_model.step()
+                # scheduler.step()
+
+                with torch.no_grad():
+                    summed_sim_loss += sim_loss
+                    summed_td_loss += td_loss
+                    summed_total_loss += total_loss
+                    # summed_avg_tukey_depth += tukey_depths.mean()
+
+                batches += 1
+
+                iterator.set_description(
+                    get_description(
+                        epoch,
+                        summed_sim_loss.item() / batches,
+                        summed_td_loss.item() / batches,
+                        summed_total_loss.item() / batches,
+                        summed_avg_tukey_depth.item() / batches,
+                    )
                 )
-            )
 
-            if epoch == EPOCHS:
-                checkpoint = {
-                    'epoch': epoch,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer_model.state_dict(),
-                    'loss': summed_total_loss.item() / batches
-                }
+                if epoch % 5 == 0 or epoch < 10:
+                    checkpoint = {
+                        'epoch': epoch,
+                        'model_state_dict': model.state_dict(),
+                        'optimizer_state_dict': optimizer_model.state_dict(),
+                        'loss': summed_total_loss.item() / batches
+                    }
 
-                torch.save(checkpoint, f'checkpoint_class{NORMAL_CLASS}_epoch{epoch}.pth')
+                    torch.save(checkpoint, f'checkpoint_class{NORMAL_CLASS}_epoch{epoch}.pth')
