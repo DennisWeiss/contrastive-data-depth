@@ -177,7 +177,7 @@ for NORMAL_CLASS in range(0, 10):
     # optimizer_model = torch.optim.RMSprop(model.parameters(), lr=LEARNING_RATE)
 
     if LOAD_FROM_CHECKPOINT:
-        checkpoint = torch.load(f'checkpoint_class{NORMAL_CLASS}_epoch100.pth')
+        checkpoint = torch.load(f'checkpoint_class{NORMAL_CLASS}_epoch20.pth')
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer_model.load_state_dict(checkpoint['optimizer_state_dict'])
         print(f'Loss: {checkpoint["loss"]}')
@@ -247,8 +247,8 @@ for NORMAL_CLASS in range(0, 10):
 
                 # print(tukey_depths.mean().item())
                 # td_loss = get_kl_divergence(tukey_depths, lambda x: 2, 0.05, 1e-5)
-                # td_loss = norm_of_kde(tukey_depths.reshape(-1, 1), 0.1)
-                td_loss = norm_of_kde(y1, 0.5)
+                td_loss = norm_of_kde(tukey_depths.reshape(-1, 1), 0.1)
+                # td_loss = norm_of_kde(y1, 0.5)
 
                 # dist_loss = torch.square(y2 - y2.mean(dim=0)).sum(dim=1).mean()
 
