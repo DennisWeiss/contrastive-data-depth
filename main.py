@@ -16,7 +16,7 @@ from model import DataDepthTwinsModel
 from transforms import Transform
 
 
-LOAD_FROM_CHECKPOINT = True
+LOAD_FROM_CHECKPOINT = False
 
 # NORMAL_CLASS = 4
 BATCH_SIZE = 400
