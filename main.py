@@ -22,8 +22,8 @@ LOAD_FROM_CHECKPOINT = False
 BATCH_SIZE = 400
 TUKEY_DEPTH_STEPS = 40
 TEMP = 2
-EPOCHS = 100
-LEARNING_RATE = 3e-4
+EPOCHS = 400
+LEARNING_RATE = 1e-4
 
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
@@ -123,7 +123,7 @@ def evaluate_tukey_depth_auroc(model, train_loader, test_normal_loader, test_ano
 # CIFAR10 1 vs. rest Anomaly Detection
 
 
-for NORMAL_CLASS in range(0, 10):
+for NORMAL_CLASS in range(1, 10):
     print(f'Processing class {NORMAL_CLASS}...')
 
     train_data = torch.utils.data.Subset(NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=Transform()), list(range(2000)))
