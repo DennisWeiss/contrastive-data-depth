@@ -16,11 +16,13 @@ from model import DataDepthTwinsModel
 from transforms import Transform
 
 
-LOAD_FROM_CHECKPOINT = True
+LOAD_FROM_CHECKPOINT = False
 
 # NORMAL_CLASS = 4
+ENCODING_DIM = 256
 BATCH_SIZE = 400
-TUKEY_DEPTH_STEPS = 40
+TUKEY_DEPTH_COMPUTATIONS = 20
+TUKEY_DEPTH_STEPS = 30
 TEMP = 2
 EPOCHS = 401
 LEARNING_RATE = 1e-4
@@ -123,7 +125,7 @@ def evaluate_auroc_anomaly_detection(model, projection_size, train_loader, test_
 # CIFAR10 1 vs. rest Anomaly Detection
 
 
-for NORMAL_CLASS in range(8, 10):
+for NORMAL_CLASS in range(5, 6):
     print(f'Processing class {NORMAL_CLASS}...')
 
     train_data = torch.utils.data.Subset(NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=Transform()), list(range(2400)))
@@ -204,10 +206,14 @@ for NORMAL_CLASS in range(8, 10):
             # print(f'AUROC: {evaluate_tukey_depth_auroc(model, train_data_eval_dataloader, test_normal_dataloader, test_anomalous_dataloader)}')
             # print(f'AUROC: {evaluate_tukey_depth_auroc(model.backbone, train_data_eval_dataloader, test_normal_dataloader, test_anomalous_dataloader)}')
             # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=5)}')
-            # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=1)}')
+            print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=1)}')
             # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=5)}')
             print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=1)}')
         # print(f'Linar probe acc.: {evaluate_by_linear_probing(test_dataloader, model.backbone, 512, device)}')
+
+        best_z = (2 * torch.rand(len(train_data), ENCODING_DIM, device=device) - 1).detach()
+
+        step = 0
 
         for (x1, x2) in iterator:
             x1, x2 = x1.to(device), x2.to(device)
@@ -225,21 +231,40 @@ for NORMAL_CLASS in range(8, 10):
                 y1_full, y2_full = model(x1_full), model(x2_full)
                 y1_full_detached, y2_full_detached = y1_full.detach(), y2_full.detach()
 
-                optimizer_model.zero_grad()
-
                 sim_loss = torch.square(y1 - y2).sum(dim=1).mean()
                 # sim_loss = 30 * (1 - ((y1 * y2).sum(dim=1) / torch.sqrt((y1 ** 2).sum(dim=1) * (y2 ** 2).sum(dim=1)).clamp(min=1e-7)).mean())
 
-                z = nn.Parameter(torch.rand(y1_full.shape[0], y1_full.shape[1], device=device).multiply(2).subtract(1))
-                optimizer_z = torch.optim.SGD([z], lr=1e+2)
+                current_tukey_depth = soft_tukey_depth(y1_detached, y1_full_detached, best_z[step * BATCH_SIZE:(step + 1) * BATCH_SIZE], TEMP)
 
-                for j in range(TUKEY_DEPTH_STEPS):
-                    optimizer_z.zero_grad()
-                    tukey_depths = soft_tukey_depth(y1_full_detached, y1_detached, z, TEMP)
-                    tukey_depths.sum().backward()
-                    optimizer_z.step()
+                for j in range(TUKEY_DEPTH_COMPUTATIONS):
+                    z = nn.Parameter(2 * torch.rand(y1_full.shape[0], y1_full.shape[1], device=device) - 1)
+                    optimizer_z = torch.optim.SGD([z], lr=1e+2)
 
-                tukey_depths = soft_tukey_depth(y1_full, y1, z.detach(), TEMP)
+                    for k in range(TUKEY_DEPTH_STEPS):
+                        optimizer_z.zero_grad()
+                        tukey_depths = soft_tukey_depth(y1_detached, y1_full_detached, z[step * BATCH_SIZE:(step + 1) * BATCH_SIZE], TEMP)
+                        tukey_depths.sum().backward()
+                        optimizer_z.step()
+
+                    tukey_depths = soft_tukey_depth(y1_detached, y1_full_detached, z[step * BATCH_SIZE:(step + 1) * BATCH_SIZE], TEMP)
+                    for l in range(tukey_depths.size(dim=0)):
+                        if tukey_depths[l] < current_tukey_depth[l]:
+                            current_tukey_depth[l] = tukey_depths[l].detach()
+                            best_z[step * BATCH_SIZE + l] = z[l].detach()
+
+            step += 1
+
+        for (x1, x2) in iterator:
+            x1, x2 = x1.to(device), x2.to(device)
+            y1, y2 = model(x1), model(x2)
+            y1_detached, y2_detached = y1.detach(), y2.detach()
+
+            for (x1_full, x2_full) in train_dataloader_full:
+                x1_full, x2_full = x1_full.to(device), x2_full.to(device)
+                y1_full, y2_full = model(x1_full), model(x2_full)
+                y1_full_detached, y2_full_detached = y1_full.detach(), y2_full.detach()
+
+                tukey_depths = soft_tukey_depth(y1_full, y1, best_z.detach(), TEMP)
 
                 # if epoch % 1 == 0:
                 #     plt.hist(tukey_depths.cpu().detach().numpy(), bins=30)
