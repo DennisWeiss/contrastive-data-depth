@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.utils.data
 import torchvision.datasets
-from pyod.models.knn import KNN
+# from pyod.models.knn import KNN
 from torch.optim.lr_scheduler import LambdaLR
 from tqdm import tqdm
 import numpy as np
@@ -14,6 +14,9 @@ from common import soft_tukey_depth, get_kl_divergence, evaluate_by_linear_probi
 from dataset import NormalCIFAR10Dataset, AnomalousCIFAR10Dataset, NormalCIFAR10DatasetRotationAugmented
 from model import DataDepthTwinsModel
 from transforms import Transform
+
+import matplotlib.pyplot as plt
+from random import random
 
 
 LOAD_FROM_CHECKPOINT = False
@@ -88,38 +91,38 @@ def evaluate_tukey_depth_auroc(model, train_loader, test_normal_loader, test_ano
     return roc_auc_score(y_test, anomaly_scores)
 
 
-def evaluate_auroc_anomaly_detection(model, projection_size, train_loader, test_normal_loader, test_anomalous_loader, n_neighbors=5):
-    x_train = np.zeros((0, projection_size))
-    for x in train_loader:
-        x = x.to(device)
-        x = model(x)
-        x = x.detach().cpu().numpy()
-        x_train = np.concatenate((x_train, x), axis=0)
-
-    x_test = np.zeros((0, projection_size))
-    y_test = np.zeros(0)
-
-    for x in test_normal_loader:
-        x = x.to(device)
-        x = model(x)
-        x = x.detach().cpu().numpy()
-        x_test = np.concatenate((x_test, x), axis=0)
-        y_test = np.concatenate((y_test, np.zeros(x.shape[0])), axis=0)
-
-    for x in test_anomalous_loader:
-        x = x.to(device)
-        x = model(x)
-        x = x.detach().cpu().numpy()
-        x_test = np.concatenate((x_test, x), axis=0)
-        y_test = np.concatenate((y_test, np.ones(x.shape[0])), axis=0)
-
-    # clf = KDE(contamination=0.1, bandwidth=1, metric='l2')
-    clf = KNN(n_neighbors=n_neighbors)
-    clf.fit(x_train)
-
-    anomaly_scores = clf.decision_function(x_test)
-
-    return roc_auc_score(y_test, anomaly_scores)
+# def evaluate_auroc_anomaly_detection(model, projection_size, train_loader, test_normal_loader, test_anomalous_loader, n_neighbors=5):
+#     x_train = np.zeros((0, projection_size))
+#     for x in train_loader:
+#         x = x.to(device)
+#         x = model(x)
+#         x = x.detach().cpu().numpy()
+#         x_train = np.concatenate((x_train, x), axis=0)
+#
+#     x_test = np.zeros((0, projection_size))
+#     y_test = np.zeros(0)
+#
+#     for x in test_normal_loader:
+#         x = x.to(device)
+#         x = model(x)
+#         x = x.detach().cpu().numpy()
+#         x_test = np.concatenate((x_test, x), axis=0)
+#         y_test = np.concatenate((y_test, np.zeros(x.shape[0])), axis=0)
+#
+#     for x in test_anomalous_loader:
+#         x = x.to(device)
+#         x = model(x)
+#         x = x.detach().cpu().numpy()
+#         x_test = np.concatenate((x_test, x), axis=0)
+#         y_test = np.concatenate((y_test, np.ones(x.shape[0])), axis=0)
+#
+#     # clf = KDE(contamination=0.1, bandwidth=1, metric='l2')
+#     clf = KNN(n_neighbors=n_neighbors)
+#     clf.fit(x_train)
+#
+#     anomaly_scores = clf.decision_function(x_test)
+#
+#     return roc_auc_score(y_test, anomaly_scores)
 
 
 # CIFAR10 1 vs. rest Anomaly Detection
@@ -202,13 +205,13 @@ for NORMAL_CLASS in range(5, 6):
 
         batches = 0
 
-        if epoch % 1 == 0 or epoch < 10:
+        # if epoch % 1 == 0 or epoch < 10:
             # print(f'AUROC: {evaluate_tukey_depth_auroc(model, train_data_eval_dataloader, test_normal_dataloader, test_anomalous_dataloader)}')
             # print(f'AUROC: {evaluate_tukey_depth_auroc(model.backbone, train_data_eval_dataloader, test_normal_dataloader, test_anomalous_dataloader)}')
             # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=5)}')
-            print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=1)}')
+            # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=1)}')
             # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=5)}')
-            print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=1)}')
+            # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=1)}')
         # print(f'Linar probe acc.: {evaluate_by_linear_probing(test_dataloader, model.backbone, 512, device)}')
 
         best_z = (2 * torch.rand(len(train_data), ENCODING_DIM, device=device) - 1).detach()
@@ -266,6 +269,11 @@ for NORMAL_CLASS in range(5, 6):
 
                 tukey_depths = soft_tukey_depth(y1_full, y1, best_z.detach(), TEMP)
 
+                if epoch == EPOCHS:
+                    fig = plt.figure()
+                    plt.hist(tukey_depths.cpu().detach().numpy(), bins=30)
+                    plt.savefig(f'tukey_depths_{random()}.png')
+
                 # if epoch % 1 == 0:
                 #     plt.hist(tukey_depths.cpu().detach().numpy(), bins=30)
                 #     plt.show()
@@ -301,12 +309,12 @@ for NORMAL_CLASS in range(5, 6):
                     )
                 )
 
-                if epoch == EPOCHS:
-                    checkpoint = {
-                        'epoch': epoch,
-                        'model_state_dict': model.state_dict(),
-                        'optimizer_state_dict': optimizer_model.state_dict(),
-                        'loss': summed_total_loss.item() / batches
-                    }
+            if epoch == EPOCHS:
+                checkpoint = {
+                    'epoch': epoch,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer_model.state_dict(),
+                    'loss': summed_total_loss.item() / batches
+                }
 
-                    torch.save(checkpoint, f'checkpoint_class{NORMAL_CLASS}_epoch{epoch}.pth')
+                torch.save(checkpoint, f'checkpoint_class{NORMAL_CLASS}_epoch{epoch}.pth')
