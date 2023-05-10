@@ -267,6 +267,8 @@ for NORMAL_CLASS in range(5, 6):
                 y1_full, y2_full = model(x1_full), model(x2_full)
                 y1_full_detached, y2_full_detached = y1_full.detach(), y2_full.detach()
 
+                optimizer_model.zero_grad()
+
                 tukey_depths = soft_tukey_depth(y1_full, y1, best_z.detach(), TEMP)
 
                 if epoch == EPOCHS:
@@ -309,12 +311,12 @@ for NORMAL_CLASS in range(5, 6):
                     )
                 )
 
-            if epoch == EPOCHS:
-                checkpoint = {
-                    'epoch': epoch,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer_model.state_dict(),
-                    'loss': summed_total_loss.item() / batches
-                }
+        if epoch == EPOCHS:
+            checkpoint = {
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer_model.state_dict(),
+                'loss': summed_total_loss.item() / batches
+            }
 
-                torch.save(checkpoint, f'checkpoint_class{NORMAL_CLASS}_epoch{epoch}.pth')
+            torch.save(checkpoint, f'checkpoint_class{NORMAL_CLASS}_epoch{epoch}.pth')
