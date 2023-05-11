@@ -250,6 +250,8 @@ for NORMAL_CLASS in range(5, 6):
                             current_tukey_depth[l] = tukey_depths[l].detach()
                             best_z[step * BATCH_SIZE + l] = z[l].detach()
 
+            y1_full, y2_full = model(x1_full), model(x2_full)
+
             for (x1, x2) in iterator:
                 x1, x2 = x1.to(device), x2.to(device)
                 y1, y2 = model(x1), model(x2)
@@ -271,7 +273,7 @@ for NORMAL_CLASS in range(5, 6):
                 #     plt.hist(tukey_depths.cpu().detach().numpy(), bins=30)
                 #     plt.show()
 
-                print(f'Mean: {tukey_depths.mean().item()}')
+                # print(f'Mean: {tukey_depths.mean().item()}')
                 # td_loss = get_kl_divergence(tukey_depths, lambda x: 2, 0.05, 1e-5)
                 td_loss = norm_of_kde(tukey_depths.reshape(-1, 1), 0.1)
                 # td_loss = norm_of_kde(y1, 0.5)
@@ -288,7 +290,7 @@ for NORMAL_CLASS in range(5, 6):
                     summed_sim_loss += sim_loss
                     summed_td_loss += td_loss
                     summed_total_loss += total_loss
-                    # summed_avg_tukey_depth += tukey_depths.mean()
+                    summed_avg_tukey_depth += tukey_depths.mean()
 
                 batches += 1
 
