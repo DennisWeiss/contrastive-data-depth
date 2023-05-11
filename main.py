@@ -283,16 +283,17 @@ for NORMAL_CLASS in range(5, 6):
                 # dist_loss = torch.square(y2 - y2.mean(dim=0)).sum(dim=1).mean()
 
                 total_loss = 0.3 * sim_loss + td_loss
-                # total_loss = nt_xent(y)
-                total_loss.backward()
-                optimizer_model.step()
-                # scheduler.step()
 
                 with torch.no_grad():
                     summed_sim_loss += sim_loss
                     summed_td_loss += td_loss
                     summed_total_loss += total_loss
                     summed_avg_tukey_depth += tukey_depths.mean()
+
+                total_loss.backward()
+                optimizer_model.step()
+                # scheduler.step()
+
 
                 batches += 1
 
