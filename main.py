@@ -259,11 +259,10 @@ for NORMAL_CLASS in range(5, 6):
                 y1, y2 = model(x1), model(x2)
                 y1_detached, y2_detached = y1.detach(), y2.detach()
 
-                sim_loss = torch.square(y1 - y2).sum(dim=1).mean()
-                # sim_loss = 30 * (1 - ((y1 * y2).sum(dim=1) / torch.sqrt((y1 ** 2).sum(dim=1) * (y2 ** 2).sum(dim=1)).clamp(min=1e-7)).mean())
-
                 optimizer_model.zero_grad()
 
+                sim_loss = torch.square(y1 - y2).sum(dim=1).mean()
+                # sim_loss = 30 * (1 - ((y1 * y2).sum(dim=1) / torch.sqrt((y1 ** 2).sum(dim=1) * (y2 ** 2).sum(dim=1)).clamp(min=1e-7)).mean())
                 tukey_depths = soft_tukey_depth(y1_full, y1, best_z.detach(), TEMP)
 
                 if epoch == EPOCHS:
