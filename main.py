@@ -250,14 +250,15 @@ for NORMAL_CLASS in range(5, 6):
                             current_tukey_depth[l] = tukey_depths[l].detach()
                             best_z[step * BATCH_SIZE + l] = z[l].detach()
 
-        for (x1_full, x2_full) in train_dataloader_full:
-            x1_full, x2_full = x1_full.to(device), x2_full.to(device)
-            y1_full, y2_full = model(x1_full), model(x2_full)
 
-            for (x1, x2) in iterator:
-                x1, x2 = x1.to(device), x2.to(device)
-                y1, y2 = model(x1), model(x2)
-                y1_detached, y2_detached = y1.detach(), y2.detach()
+        for (x1, x2) in iterator:
+            x1, x2 = x1.to(device), x2.to(device)
+            y1, y2 = model(x1), model(x2)
+            y1_detached, y2_detached = y1.detach(), y2.detach()
+
+            for (x1_full, x2_full) in train_dataloader_full:
+                x1_full, x2_full = x1_full.to(device), x2_full.to(device)
+                y1_full, y2_full = model(x1_full), model(x2_full)
 
                 optimizer_model.zero_grad()
 
