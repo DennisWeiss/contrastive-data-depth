@@ -250,6 +250,8 @@ for NORMAL_CLASS in range(5, 6):
                             current_tukey_depth[l] = tukey_depths[l].detach()
                             best_z[step * BATCH_SIZE + l] = z[l].detach()
 
+            del y1_full
+            del y2_full
             y1_full, y2_full = model(x1_full), model(x2_full)
 
             for (x1, x2) in iterator:
