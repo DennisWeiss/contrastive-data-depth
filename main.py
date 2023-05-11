@@ -23,7 +23,7 @@ LOAD_FROM_CHECKPOINT = False
 
 # NORMAL_CLASS = 4
 ENCODING_DIM = 256
-BATCH_SIZE = 400
+BATCH_SIZE = 250
 TUKEY_DEPTH_COMPUTATIONS = 5
 TUKEY_DEPTH_STEPS = 30
 TEMP = 0.2
@@ -131,7 +131,7 @@ def evaluate_auroc_anomaly_detection(model, projection_size, train_loader, test_
 for NORMAL_CLASS in range(5, 6):
     print(f'Processing class {NORMAL_CLASS}...')
 
-    train_data = torch.utils.data.Subset(NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=Transform()), list(range(2400)))
+    train_data = torch.utils.data.Subset(NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=Transform()), list(range(1500)))
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=False, drop_last=True)
     train_dataloader_full = torch.utils.data.DataLoader(train_data, batch_size=len(train_data), shuffle=False)
 
@@ -290,7 +290,7 @@ for NORMAL_CLASS in range(5, 6):
                     summed_total_loss += total_loss
                     summed_avg_tukey_depth += tukey_depths.mean()
 
-                total_loss.backward()
+                total_loss.backward(retain_graph=True)
                 optimizer_model.step()
                 # scheduler.step()
 
