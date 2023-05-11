@@ -258,9 +258,6 @@ for NORMAL_CLASS in range(5, 6):
                 y1, y2 = model(x1), model(x2)
                 y1_detached, y2_detached = y1.detach(), y2.detach()
 
-                x1_full, x2_full = x1_full.to(device), x2_full.to(device)
-                y1_full, y2_full = model(x1_full.detach()), model(x2_full.detach())
-
                 optimizer_model.zero_grad()
 
                 sim_loss = torch.square(y1 - y2).sum(dim=1).mean()
