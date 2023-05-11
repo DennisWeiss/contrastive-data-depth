@@ -211,8 +211,8 @@ for NORMAL_CLASS in range(5, 6):
             # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=5)}')
             # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=1)}')
             # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=5)}')
-            # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=1)}')
-            print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=1)}')
+            print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=1)}')
+            # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=1)}')
         # print(f'Linar probe acc.: {evaluate_by_linear_probing(test_dataloader, model.backbone, 512, device)}')
 
         best_z = (2 * torch.rand(len(train_data), ENCODING_DIM, device=device) - 1).detach()
