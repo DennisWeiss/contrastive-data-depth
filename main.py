@@ -131,7 +131,7 @@ def evaluate_auroc_anomaly_detection(model, projection_size, train_loader, test_
 for NORMAL_CLASS in range(5, 6):
     print(f'Processing class {NORMAL_CLASS}...')
 
-    train_data = torch.utils.data.Subset(NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=Transform()), list(range(2000)))
+    train_data = torch.utils.data.Subset(NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=Transform()), list(range(2400)))
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=False, drop_last=True)
     train_dataloader_full = torch.utils.data.DataLoader(train_data, batch_size=len(train_data), shuffle=False)
 
@@ -250,8 +250,8 @@ for NORMAL_CLASS in range(5, 6):
                             current_tukey_depth[l] = tukey_depths[l].detach()
                             best_z[step * BATCH_SIZE + l] = z[l].detach()
 
-            del y1_full
-            del y2_full
+        for (x1_full, x2_full) in train_dataloader_full:
+            x1_full, x2_full = x1_full.to(device), x2_full.to(device)
             y1_full, y2_full = model(x1_full), model(x2_full)
 
             for (x1, x2) in iterator:
