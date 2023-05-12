@@ -23,7 +23,7 @@ LOAD_FROM_CHECKPOINT = False
 
 # NORMAL_CLASS = 4
 ENCODING_DIM = 256
-BATCH_SIZE = 250
+BATCH_SIZE = 200
 TUKEY_DEPTH_COMPUTATIONS = 5
 TUKEY_DEPTH_STEPS = 30
 TEMP = 0.2
@@ -131,7 +131,7 @@ def evaluate_auroc_anomaly_detection(model, projection_size, train_loader, test_
 for NORMAL_CLASS in range(5, 6):
     print(f'Processing class {NORMAL_CLASS}...')
 
-    train_data = torch.utils.data.Subset(NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=Transform()), list(range(1500)))
+    train_data = torch.utils.data.Subset(NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=Transform()), list(range(3000)))
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=False, drop_last=True)
     train_dataloader_full = torch.utils.data.DataLoader(train_data, batch_size=len(train_data), shuffle=False)
 
@@ -276,9 +276,9 @@ for NORMAL_CLASS in range(5, 6):
 
                 # print(f'Mean: {tukey_depths.mean().item()}')
                 # td_loss = get_kl_divergence(tukey_depths, lambda x: 2, 0.05, 1e-5)
-                td_loss = -torch.var(tukey_depths)
+                # td_loss = -torch.var(tukey_depths)
                 # td_loss = norm_of_kde(tukey_depths.reshape(-1, 1), 0.1)
-                # td_loss = norm_of_kde(y1, 0.5)
+                td_loss = norm_of_kde(y1, 0.05)
 
                 # dist_loss = torch.square(y2 - y2.mean(dim=0)).sum(dim=1).mean()
 

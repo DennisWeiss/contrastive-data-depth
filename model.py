@@ -41,4 +41,5 @@ class DataDepthTwinsModel(nn.Module):
 
     def forward(self, x):
         # return self.backbone(x)
-        return self.projector(self.backbone(x))
+        representation = self.backbone(x)
+        return self.projector(representation)
