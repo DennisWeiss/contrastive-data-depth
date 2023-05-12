@@ -290,7 +290,7 @@ for NORMAL_CLASS in range(5, 6):
                     summed_total_loss += total_loss
                     summed_avg_tukey_depth += tukey_depths.mean()
 
-                total_loss.backward(retain_graph=True)
+                total_loss.backward()
                 optimizer_model.step()
                 # scheduler.step()
 
