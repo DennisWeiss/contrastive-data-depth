@@ -26,7 +26,7 @@ ENCODING_DIM = 256
 BATCH_SIZE = 200
 TUKEY_DEPTH_COMPUTATIONS = 5
 TUKEY_DEPTH_STEPS = 30
-TEMP = 0.2
+TEMP = 0.1
 EPOCHS = 200
 LEARNING_RATE = 1e-4
 
@@ -131,7 +131,7 @@ def evaluate_auroc_anomaly_detection(model, projection_size, train_loader, test_
 for NORMAL_CLASS in range(5, 6):
     print(f'Processing class {NORMAL_CLASS}...')
 
-    train_data = torch.utils.data.Subset(NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=Transform()), list(range(3000)))
+    train_data = torch.utils.data.Subset(NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=Transform()), list(range(2000)))
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=False, drop_last=True)
     train_dataloader_full = torch.utils.data.DataLoader(train_data, batch_size=len(train_data), shuffle=False)
 
@@ -263,7 +263,7 @@ for NORMAL_CLASS in range(5, 6):
                 sim_loss = torch.square(y1 - y2).sum(dim=1).mean()
                 # sim_loss = 30 * (1 - ((y1 * y2).sum(dim=1) / torch.sqrt((y1 ** 2).sum(dim=1) * (y2 ** 2).sum(dim=1)).clamp(min=1e-7)).mean())
                 # tukey_depths = soft_tukey_depth(y1_full, y1_detached, best_z.detach(), TEMP)
-                tukey_depths = soft_tukey_depth(y1, y1_detached, best_z[step * BATCH_SIZE:(step + 1) * BATCH_SIZE].detach(), TEMP)
+                tukey_depths = soft_tukey_depth(y1_full, y1_detached, best_z[step * BATCH_SIZE:(step + 1) * BATCH_SIZE].detach(), TEMP)
 
                 if epoch == EPOCHS:
                     fig = plt.figure()
@@ -277,8 +277,8 @@ for NORMAL_CLASS in range(5, 6):
                 # print(f'Mean: {tukey_depths.mean().item()}')
                 # td_loss = get_kl_divergence(tukey_depths, lambda x: 2, 0.05, 1e-5)
                 # td_loss = -torch.var(tukey_depths)
-                # td_loss = norm_of_kde(tukey_depths.reshape(-1, 1), 0.1)
-                td_loss = norm_of_kde(y1, 0.05)
+                td_loss = norm_of_kde(tukey_depths.reshape(-1, 1), 0.05)
+                # td_loss = norm_of_kde(y1, 0.5)
 
                 # dist_loss = torch.square(y2 - y2.mean(dim=0)).sum(dim=1).mean()
 
