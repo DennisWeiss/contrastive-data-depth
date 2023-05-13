@@ -259,6 +259,8 @@ for NORMAL_CLASS in range(5, 6):
             for (x1, x2) in iterator:
                 optimizer_model.zero_grad()
 
+                y1_full, y2_full = model(x1_full.detach()), model(x2_full.detach())
+
                 x1, x2 = x1.to(device), x2.to(device)
                 y1, y2 = model(x1), model(x2)
                 y1_detached, y2_detached = y1.detach(), y2.detach()
@@ -293,7 +295,7 @@ for NORMAL_CLASS in range(5, 6):
                     summed_total_loss += total_loss
                     summed_avg_tukey_depth += tukey_depths.mean()
 
-                total_loss.backward(retain_graph=True)
+                total_loss.backward()
                 optimizer_model.step()
                 # scheduler.step()
 
