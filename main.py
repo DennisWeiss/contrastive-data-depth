@@ -9,6 +9,7 @@ from tqdm import tqdm
 import numpy as np
 # from pyod.models.kde import KDE
 from sklearn.metrics import roc_auc_score
+import sys
 
 from common import soft_tukey_depth, get_kl_divergence, evaluate_by_linear_probing, soft_tukey_depth_thru_origin, norm_of_kde
 from dataset import NormalCIFAR10Dataset, AnomalousCIFAR10Dataset, NormalCIFAR10DatasetRotationAugmented
@@ -24,6 +25,8 @@ TUKEY_DEPTH_STEPS = 40
 TEMP = 2
 EPOCHS = 400
 LEARNING_RATE = 3e-4
+
+normal_class = int(sys.argv[1])
 
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
@@ -123,7 +126,7 @@ def evaluate_auroc_anomaly_detection(model, projection_size, train_loader, test_
 # CIFAR10 1 vs. rest Anomaly Detection
 
 
-for NORMAL_CLASS in range(5, 6):
+for NORMAL_CLASS in range(normal_class, normal_class + 1):
     print(f'Processing class {NORMAL_CLASS}...')
 
     train_data = torch.utils.data.Subset(NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=Transform()), list(range(2000)))
@@ -206,7 +209,7 @@ for NORMAL_CLASS in range(5, 6):
             # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=5)}')
             # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=1)}')
             # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=5)}')
-            print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=1)}')
+            print(f'Epoch {epoch} -- KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=1)}')
         # print(f'Linar probe acc.: {evaluate_by_linear_probing(test_dataloader, model.backbone, 512, device)}')
 
         for (x1, x2) in iterator:
