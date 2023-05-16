@@ -24,7 +24,7 @@ BATCH_SIZE = 400
 TUKEY_DEPTH_STEPS = 40
 TEMP = 2
 EPOCHS = 400
-LEARNING_RATE = 3e-4
+LEARNING_RATE = 1e-4
 
 normal_class = int(sys.argv[1])
 
@@ -176,7 +176,7 @@ for NORMAL_CLASS in range(normal_class, normal_class + 1):
 
     model = DataDepthTwinsModel().to(device)
     # optimizer_model = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=0.9, nesterov=True)
-    optimizer_model = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-6)
+    optimizer_model = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
     # optimizer_model = torch.optim.RMSprop(model.parameters(), lr=LEARNING_RATE)
 
     if LOAD_FROM_CHECKPOINT:
@@ -250,7 +250,7 @@ for NORMAL_CLASS in range(normal_class, normal_class + 1):
 
                 # print(tukey_depths.mean().item())
                 # td_loss = get_kl_divergence(tukey_depths, lambda x: 2, 0.05, 1e-5)
-                td_loss = norm_of_kde(tukey_depths.reshape(-1, 1), 0.1)
+                td_loss = norm_of_kde(tukey_depths.reshape(-1, 1), 0.07)
                 # td_loss = norm_of_kde(y1, 0.5)
 
                 # dist_loss = torch.square(y2 - y2.mean(dim=0)).sum(dim=1).mean()
