@@ -214,7 +214,7 @@ for NORMAL_CLASS in range(normal_class, normal_class + 1):
 
         batches = 0
 
-        if epoch % 5 == 0 or epoch < 10:
+        if epoch % 5 == 0:
             # print(f'AUROC: {evaluate_tukey_depth_auroc(model, train_data_eval_dataloader, test_normal_dataloader, test_anomalous_dataloader)}')
             # # print(f'AUROC: {evaluate_tukey_depth_auroc(model.backbone, train_data_eval_dataloader, test_normal_dataloader, test_anomalous_dataloader)}')
             # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=5)}')
