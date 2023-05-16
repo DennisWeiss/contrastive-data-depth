@@ -4,6 +4,8 @@ import torch.nn as nn
 import torch.utils.data
 import torchvision.datasets
 from pyod.models.knn import KNN
+from pyod.models.iforest import IForest
+from pyod.models.cblof import CBLOF
 from torch.optim.lr_scheduler import LambdaLR
 from tqdm import tqdm
 import numpy as np
@@ -19,10 +21,11 @@ from transforms import Transform
 
 LOAD_FROM_CHECKPOINT = False
 
-# NORMAL_CLASS = 4
+DATASET_SIZE = 2000
 BATCH_SIZE = 400
 TUKEY_DEPTH_STEPS = 40
 TEMP = 2
+KERNEL_BANDWIDTH = 0.07
 EPOCHS = 400
 LEARNING_RATE = 1e-4
 
@@ -89,7 +92,7 @@ def evaluate_tukey_depth_auroc(model, train_loader, test_normal_loader, test_ano
     return roc_auc_score(y_test, anomaly_scores)
 
 
-def evaluate_auroc_anomaly_detection(model, projection_size, train_loader, test_normal_loader, test_anomalous_loader, n_neighbors=5):
+def evaluate_auroc_anomaly_detection(model, projection_size, train_loader, test_normal_loader, test_anomalous_loader, method='KNN', n_neighbors=5):
     x_train = np.zeros((0, projection_size))
     for x in train_loader:
         x = x.to(device)
@@ -115,7 +118,14 @@ def evaluate_auroc_anomaly_detection(model, projection_size, train_loader, test_
         y_test = np.concatenate((y_test, np.ones(x.shape[0])), axis=0)
 
     # clf = KDE(contamination=0.1, bandwidth=1, metric='l2')
-    clf = KNN(n_neighbors=n_neighbors)
+    if method == 'KNN':
+        clf = KNN(n_neighbors=n_neighbors)
+    elif method == 'CBLOF':
+        clf = CBLOF()
+    elif method == 'IForest':
+        clf = IForest()
+    else:
+        raise Exception(f'Invalid method name {method}')
     clf.fit(x_train)
 
     anomaly_scores = clf.decision_function(x_test)
@@ -129,7 +139,8 @@ def evaluate_auroc_anomaly_detection(model, projection_size, train_loader, test_
 for NORMAL_CLASS in range(normal_class, normal_class + 1):
     print(f'Processing class {NORMAL_CLASS}...')
 
-    train_data = torch.utils.data.Subset(NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=Transform()), list(range(2000)))
+    train_data = torch.utils.data.Subset(NormalCIFAR10Dataset(normal_class=NORMAL_CLASS, train=True, transform=Transform()), list(range(
+        DATASET_SIZE)))
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
     train_dataloader_full = torch.utils.data.DataLoader(train_data, batch_size=len(train_data))
 
@@ -209,7 +220,14 @@ for NORMAL_CLASS in range(normal_class, normal_class + 1):
             # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=5)}')
             # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=1)}')
             # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=5)}')
-            print(f'Epoch {epoch} -- KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=1)}')
+            print(f'Epoch {epoch:03d} -- 1NN in representation space AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, method="KNN", n_neighbors=1)}')
+            print(f'Epoch {epoch:03d} -- 1NN in feature space AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, method="KNN", n_neighbors=1)}')
+            print(f'Epoch {epoch:03d} -- CBLOF in representation space AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, method="CBLOF", n_neighbors=1)}')
+            print(f'Epoch {epoch:03d} -- CBLOF in feature space AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, method="CBLOF", n_neighbors=1)}')
+            print(
+                f'Epoch {epoch:03d} -- IForest in representation space AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, method="IForest", n_neighbors=1)}')
+            print(
+                f'Epoch {epoch:03d} -- IForest in feature space AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, method="IForest", n_neighbors=1)}')
         # print(f'Linar probe acc.: {evaluate_by_linear_probing(test_dataloader, model.backbone, 512, device)}')
 
         for (x1, x2) in iterator:
@@ -250,7 +268,7 @@ for NORMAL_CLASS in range(normal_class, normal_class + 1):
 
                 # print(tukey_depths.mean().item())
                 # td_loss = get_kl_divergence(tukey_depths, lambda x: 2, 0.05, 1e-5)
-                td_loss = norm_of_kde(tukey_depths.reshape(-1, 1), 0.07)
+                td_loss = norm_of_kde(tukey_depths.reshape(-1, 1), KERNEL_BANDWIDTH)
                 # td_loss = norm_of_kde(y1, 0.5)
 
                 # dist_loss = torch.square(y2 - y2.mean(dim=0)).sum(dim=1).mean()

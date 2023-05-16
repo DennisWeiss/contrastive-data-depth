@@ -75,7 +75,7 @@ class Transform:
               torchvision.transforms.RandomResizedCrop(128),
               torchvision.transforms.RandomHorizontalFlip(p=0.5),
               get_color_distortion(scale=0.5),
-              torchvision.transforms.RandomRotation((0, 360)),
+              # torchvision.transforms.RandomRotation((0, 360)),
               torchvision.transforms.ToTensor()
           ])
 
