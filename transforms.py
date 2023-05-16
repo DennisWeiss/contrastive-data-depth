@@ -2,6 +2,7 @@ import random
 
 import torch
 import torchvision
+import torchvision.transforms.functional as F
 from PIL import Image, ImageOps, ImageFilter
 
 
@@ -70,10 +71,14 @@ class Transform:
         #                          std=[0.229, 0.224, 0.225])
         # ])
 
-        self.transform = torchvision.transforms.Compose([torchvision.transforms.RandomResizedCrop(32),
-                                          torchvision.transforms.RandomHorizontalFlip(p=0.5),
-                                          get_color_distortion(scale=0.5),
-                                          torchvision.transforms.ToTensor()])
+        self.transform = torchvision.transforms.Compose([
+              torchvision.transforms.RandomResizedCrop(128),
+              torchvision.transforms.RandomHorizontalFlip(p=0.5),
+              get_color_distortion(scale=0.5),
+              torchvision.transforms.RandomApply([torchvision.transforms.RandomRotation((180, 180))], p=0.5),
+              torchvision.transforms.RandomApply([torchvision.transforms.RandomRotation((90, 90))], p=0.5),
+              torchvision.transforms.ToTensor()
+          ])
 
     def __call__(self, x):
         y1 = self.transform(x)
