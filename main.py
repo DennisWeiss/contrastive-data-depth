@@ -221,13 +221,13 @@ for NORMAL_CLASS in range(normal_class, normal_class + 1):
             # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=1)}')
             # print(f'KNN AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, n_neighbors=5)}')
             print(f'Epoch {epoch:03d} -- 1NN in representation space AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, method="KNN", n_neighbors=1)}')
-            print(f'Epoch {epoch:03d} -- 1NN in feature space AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, method="KNN", n_neighbors=1)}')
-            print(f'Epoch {epoch:03d} -- CBLOF in representation space AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, method="CBLOF", n_neighbors=1)}')
-            print(f'Epoch {epoch:03d} -- CBLOF in feature space AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, method="CBLOF", n_neighbors=1)}')
-            print(
-                f'Epoch {epoch:03d} -- IForest in representation space AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, method="IForest", n_neighbors=1)}')
-            print(
-                f'Epoch {epoch:03d} -- IForest in feature space AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, method="IForest", n_neighbors=1)}')
+            # print(f'Epoch {epoch:03d} -- 1NN in feature space AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, method="KNN", n_neighbors=1)}')
+            # print(f'Epoch {epoch:03d} -- CBLOF in representation space AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, method="CBLOF", n_neighbors=1)}')
+            # print(f'Epoch {epoch:03d} -- CBLOF in feature space AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, method="CBLOF", n_neighbors=1)}')
+            # print(
+            #     f'Epoch {epoch:03d} -- IForest in representation space AUROC: {evaluate_auroc_anomaly_detection(model.backbone, 512, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, method="IForest", n_neighbors=1)}')
+            # print(
+            #     f'Epoch {epoch:03d} -- IForest in feature space AUROC: {evaluate_auroc_anomaly_detection(model, 256, train_data_eval_dataloader_2, test_normal_dataloader_2, test_anomalous_dataloader_2, method="IForest", n_neighbors=1)}')
         # print(f'Linar probe acc.: {evaluate_by_linear_probing(test_dataloader, model.backbone, 512, device)}')
 
         for (x1, x2) in iterator:
