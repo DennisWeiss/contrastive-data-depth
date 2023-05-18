@@ -273,7 +273,7 @@ for NORMAL_CLASS in range(normal_class, normal_class + 1):
 
                 # dist_loss = torch.square(y2 - y2.mean(dim=0)).sum(dim=1).mean()
 
-                total_loss = 1 * sim_loss + td_loss
+                total_loss = 0.1 * sim_loss + td_loss
                 # total_loss = nt_xent(y)
                 total_loss.backward()
                 optimizer_model.step()
