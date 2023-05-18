@@ -71,6 +71,11 @@ class Transform:
         #                          std=[0.229, 0.224, 0.225])
         # ])
 
+        self.rotation_transform = torchvision.transforms.Compose([
+              torchvision.transforms.RandomApply([torchvision.transforms.RandomRotation((180, 180))], p=0.5),
+              torchvision.transforms.RandomApply([torchvision.transforms.RandomRotation((90, 90))], p=0.5),
+          ])
+
         self.transform = torchvision.transforms.Compose([
               torchvision.transforms.RandomResizedCrop(32),
               torchvision.transforms.RandomHorizontalFlip(p=0.5),
@@ -81,6 +86,7 @@ class Transform:
           ])
 
     def __call__(self, x):
+        x = self.rotation_transform(x)
         y1 = self.transform(x)
         # y2 = self.transform_prime(x)
         y2 = self.transform(x)
