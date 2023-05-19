@@ -27,7 +27,7 @@ TUKEY_DEPTH_STEPS = 40
 TEMP = 2
 KERNEL_BANDWIDTH = 0.07
 EPOCHS = 400
-LEARNING_RATE = 1e-4
+LEARNING_RATE = 3e-4
 
 normal_class = int(sys.argv[1])
 
@@ -187,7 +187,7 @@ for NORMAL_CLASS in range(normal_class, normal_class + 1):
 
     model = DataDepthTwinsModel().to(device)
     # optimizer_model = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=0.9, nesterov=True)
-    optimizer_model = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-6)
+    optimizer_model = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
     # optimizer_model = torch.optim.RMSprop(model.parameters(), lr=LEARNING_RATE)
 
     if LOAD_FROM_CHECKPOINT:
