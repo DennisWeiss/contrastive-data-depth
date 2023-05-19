@@ -24,7 +24,7 @@ LOAD_FROM_CHECKPOINT = False
 DATASET_SIZE = 2000
 BATCH_SIZE = 400
 TUKEY_DEPTH_STEPS = 40
-TEMP = 2
+TEMP = 1
 KERNEL_BANDWIDTH = 0.07
 EPOCHS = 400
 LEARNING_RATE = 3e-4
@@ -273,7 +273,7 @@ for NORMAL_CLASS in range(normal_class, normal_class + 1):
 
                 # dist_loss = torch.square(y2 - y2.mean(dim=0)).sum(dim=1).mean()
 
-                total_loss = 0.1 * sim_loss + td_loss
+                total_loss = 0.3 * sim_loss + td_loss
                 # total_loss = nt_xent(y)
                 total_loss.backward()
                 optimizer_model.step()
